@@ -33,6 +33,12 @@ Run one backup manually:
 docker compose run --rm restic
 ```
 
+Run the Paperless-specific backup after a fresh Paperless DB dump exists:
+
+```sh
+docker compose run --rm --entrypoint /bin/sh restic /scripts/restic-paperless-backup.sh
+```
+
 List snapshots:
 
 ```sh

@@ -28,7 +28,6 @@ fi
 # overlaps with the more specific service dump directories below.
 run_backup data \
   /source/pictures \
-  /source/paperless-ngx \
   /source/ecodms
 
 # Service state, app dumps and host configuration. Database dump producers should

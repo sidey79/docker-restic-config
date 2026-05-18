@@ -18,6 +18,8 @@ services:
       - ${BACKUP_SOURCE_ZEUS}:/source/zeus:ro
       - ${BACKUP_SOURCE_ECODMS}:/source/ecodms:ro
       - ${BACKUP_SOURCE_PAPERLESS}:/source/paperless-ngx:ro
+      - ${BACKUP_SOURCE_PAPERLESS_DATA}:/source/paperless-data:ro
+      - ${BACKUP_SOURCE_PAPERLESS_MEDIA}:/source/paperless-media:ro
       - ${BACKUP_SOURCE_ETC}:/source/etc:ro
       - ${BACKUP_SOURCE_FHEM}:/source/fhem:ro
       - ${BACKUP_SOURCE_WORDPRESS}:/source/wordpress:ro
