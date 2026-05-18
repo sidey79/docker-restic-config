@@ -26,6 +26,18 @@ Configure the variables from `.env` in Portainer's stack environment and set
 `RESTIC_PASSWORD` there. The stack does not mount a password file so that
 Portainer can deploy it without pre-existing sidecar secret files.
 
+For SFTP repositories, set `RESTIC_REPOSITORY` to the service-specific target,
+for example:
+
+```text
+RESTIC_REPOSITORY=sftp:backupuser@backuphost:/backup/restic/paperless
+RESTIC_SSH_DIR=/opt/docker/duplicati/config/.ssh
+```
+
+`RESTIC_SSH_DIR` is mounted read-only to `/root/.ssh` inside the Restic
+container. The directory must contain the private key and a usable SSH config or
+known_hosts entry for the SFTP target.
+
 Run one backup manually:
 
 ```sh
