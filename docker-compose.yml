@@ -11,7 +11,6 @@ services:
       - RESTIC_KEEP_DAILY=${RESTIC_KEEP_DAILY}
       - RESTIC_KEEP_WEEKLY=${RESTIC_KEEP_WEEKLY}
       - RESTIC_KEEP_MONTHLY=${RESTIC_KEEP_MONTHLY}
-      - GIT_SSH_COMMAND=ssh -F /etc/restic/ssh_config
     volumes:
       - ${RESTIC_REPOSITORY_DIR:-/opt/docker/restic/repository}:/repository
       - ${RESTIC_CACHE_DIR}:/cache
@@ -33,7 +32,7 @@ services:
       - ./scripts:/scripts:ro
     configs:
       - source: restic_ssh_config
-        target: /etc/restic/ssh_config
+        target: /etc/ssh/ssh_config.d/tiffy.conf
         mode: 0400
     extra_hosts:
       - "tiffy:192.168.125.4"
