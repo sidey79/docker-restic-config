@@ -34,6 +34,9 @@ services:
       - source: restic_ssh_config
         target: /etc/ssh/ssh_config.d/tiffy.conf
         mode: 0400
+      - source: restic_known_hosts
+        target: /etc/restic/known_hosts
+        mode: 0400
     extra_hosts:
       - "tiffy:192.168.125.4"
     networks:
@@ -62,3 +65,8 @@ configs:
         User sbackupftp
         IdentityFile /root/.ssh/id.key
         IdentitiesOnly yes
+        UserKnownHostsFile /etc/restic/known_hosts
+        StrictHostKeyChecking yes
+  restic_known_hosts:
+    content: |
+      [tiffy]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINgnB1dfmEWCft9JXYpJo7Pxa3/fy/RpV1HbsDfSsD+H
