@@ -4,6 +4,7 @@ services:
   restic:
     image: restic/restic:0.18.1
     container_name: restic
+    hostname: zeus-restic
     environment:
       - TZ=Europe/Berlin
       - RESTIC_PASSWORD=${RESTIC_PASSWORD}
