@@ -1,0 +1,35 @@
+name: docker-restic-config
+
+services:
+  restic:
+    image: restic/restic:0.18.1
+    container_name: restic
+    env_file:
+      - .env
+    environment:
+      - TZ=Europe/Berlin
+      - RESTIC_PASSWORD_FILE=/run/secrets/restic_password
+    secrets:
+      - restic_password
+    volumes:
+      - ${RESTIC_REPOSITORY_DIR}:/repository
+      - ${RESTIC_CACHE_DIR}:/cache
+      - ${RESTIC_RESTORE_DIR}:/restore
+      - ${BACKUP_SOURCE_ZEUS}:/source/zeus:ro
+      - ${BACKUP_SOURCE_ECODMS}:/source/ecodms:ro
+      - ${BACKUP_SOURCE_PAPERLESS}:/source/paperless-ngx:ro
+      - ${BACKUP_SOURCE_ETC}:/source/etc:ro
+      - ${BACKUP_SOURCE_FHEM}:/source/fhem:ro
+      - ${BACKUP_SOURCE_WORDPRESS}:/source/wordpress:ro
+      - ${BACKUP_SOURCE_PICTURES}:/source/pictures:ro
+      - ${BACKUP_SOURCE_BITWARDEN}:/source/bitwarden:ro
+      - ${BACKUP_SOURCE_Z2M}:/source/z2m:ro
+      - ${BACKUP_SOURCE_N8N}:/source/n8n:ro
+      - ${BACKUP_SOURCE_PORTAINER}:/source/portainer:ro
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/restic-backup.sh"]
+    restart: "no"
+
+secrets:
+  restic_password:
+    file: ${RESTIC_PASSWORD_FILE}

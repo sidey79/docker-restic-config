@@ -1,0 +1,24 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare example environment
+        run: cp .env.example .env
+      - name: Validate compose file
+        run: docker compose --env-file .env.example config --quiet
+
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate Renovate config
+        uses: rinchsan/renovate-config-validator@v0.2.0
