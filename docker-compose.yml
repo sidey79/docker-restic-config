@@ -29,8 +29,8 @@ services:
       - ${BACKUP_SOURCE_N8N}:/source/n8n:ro
       - ${BACKUP_SOURCE_PORTAINER}:/source/portainer:ro
       - ./scripts:/scripts:ro
-    entrypoint: ["/bin/sh", "/scripts/restic-backup.sh"]
-    restart: "no"
+    entrypoint: ["/bin/sh", "-c", "sleep infinity"]
+    restart: unless-stopped
 
 secrets:
   restic_password:

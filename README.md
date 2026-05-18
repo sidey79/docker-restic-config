@@ -3,8 +3,9 @@
 Central Restic stack for host and Docker application backups.
 
 The stack replaces the central Duplicati container model with one Restic runner.
-Application stacks are still responsible for producing consistent database dumps
-or app exports. This stack only backs up files that already exist on disk.
+The container stays idle when Portainer starts the stack. Backup jobs are
+started explicitly with `docker compose exec`, usually from host-level systemd
+services that prepare consistent application data first.
 
 ## Layout
 
@@ -30,25 +31,25 @@ Adjust `RESTIC_REPOSITORY` in `.env` to the real backend.
 Run one backup manually:
 
 ```sh
-docker compose run --rm restic
+docker compose exec restic /bin/sh /scripts/restic-backup.sh
 ```
 
 Run the Paperless-specific backup after a fresh Paperless DB dump exists:
 
 ```sh
-docker compose run --rm --entrypoint /bin/sh restic /scripts/restic-paperless-backup.sh
+docker compose exec restic /bin/sh /scripts/restic-paperless-backup.sh
 ```
 
 List snapshots:
 
 ```sh
-docker compose run --rm --entrypoint restic restic snapshots
+docker compose exec restic restic snapshots
 ```
 
 Restore into the configured restore directory:
 
 ```sh
-docker compose run --rm --entrypoint restic restic restore latest --target /restore
+docker compose exec restic restic restore latest --target /restore
 ```
 
 ## Data source policy
@@ -63,13 +64,14 @@ SQL dumps more effectively.
 
 ## Scheduling
 
-Prefer a host-level systemd timer that first starts the app-specific dump
-containers and then runs this stack:
+Prefer host-level systemd timers that prepare app-specific dumps and then
+execute the relevant Restic job inside the already-running Restic container:
 
 ```sh
-docker compose -f /opt/docker/wordpress/docker-compose.yml run --rm wordpress-db-dump
-docker compose -f /opt/docker/n8n/docker-compose.yml run --rm n8n-db-dump
-docker compose -f /opt/docker/restic/docker-compose.yml run --rm restic
+docker compose \
+  --project-directory /opt/docker/portainer-compose-unpacker/stacks/docker-restic-config \
+  -f /opt/docker/portainer-compose-unpacker/stacks/docker-restic-config/docker-compose.yml \
+  exec restic /bin/sh /scripts/restic-backup.sh
 ```
 
 This keeps database credentials in the application stacks while Restic only
