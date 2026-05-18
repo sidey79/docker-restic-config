@@ -6,8 +6,8 @@ services:
     container_name: restic
     environment:
       - TZ=Europe/Berlin
-      - RESTIC_REPOSITORY=${RESTIC_REPOSITORY}
       - RESTIC_PASSWORD=${RESTIC_PASSWORD}
+      - RESTIC_PAPERLESS_REPOSITORY=${RESTIC_PAPERLESS_REPOSITORY:-sftp:tiffy:/data/zeus/restic/paperless}
       - RESTIC_KEEP_DAILY=${RESTIC_KEEP_DAILY}
       - RESTIC_KEEP_WEEKLY=${RESTIC_KEEP_WEEKLY}
       - RESTIC_KEEP_MONTHLY=${RESTIC_KEEP_MONTHLY}

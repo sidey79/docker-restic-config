@@ -2,6 +2,7 @@
 set -eu
 
 export RESTIC_CACHE_DIR=/cache
+export RESTIC_REPOSITORY="${RESTIC_PAPERLESS_REPOSITORY:-sftp:tiffy:/data/zeus/restic/paperless}"
 
 keep_daily="${RESTIC_KEEP_DAILY:-14}"
 keep_weekly="${RESTIC_KEEP_WEEKLY:-8}"

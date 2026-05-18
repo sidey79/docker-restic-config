@@ -26,11 +26,10 @@ Configure the variables from `.env` in Portainer's stack environment and set
 `RESTIC_PASSWORD` there. The stack does not mount a password file so that
 Portainer can deploy it without pre-existing sidecar secret files.
 
-For SFTP repositories, set `RESTIC_REPOSITORY` to the service-specific target,
-for example:
+Service-specific scripts set their own repository target. For Paperless this is:
 
 ```text
-RESTIC_REPOSITORY=sftp:tiffy:/data/zeus/restic/paperless
+RESTIC_PAPERLESS_REPOSITORY=sftp:tiffy:/data/zeus/restic/paperless
 RESTIC_SSH_DIR=/opt/docker/duplicati/config/.ssh
 ```
 
