@@ -16,17 +16,15 @@ services that prepare consistent application data first.
 
 ## Setup
 
-Create the runtime env file and password file:
+Create the local directories used by the stack:
 
 ```sh
-cp .env.example .env
-mkdir -p /opt/docker/restic/secrets /opt/docker/restic/cache /opt/docker/restic/restore /opt/docker/restic/repository
-chmod 700 /opt/docker/restic/secrets
-printf '%s\n' 'change-this-password' > /opt/docker/restic/secrets/restic-password
-chmod 600 /opt/docker/restic/secrets/restic-password
+mkdir -p /opt/docker/restic/cache /opt/docker/restic/restore /opt/docker/restic/repository
 ```
 
-Adjust `RESTIC_REPOSITORY` in `.env` to the real backend.
+Configure the variables from `.env` in Portainer's stack environment and set
+`RESTIC_PASSWORD` there. The stack does not mount a password file so that
+Portainer can deploy it without pre-existing sidecar secret files.
 
 Run one backup manually:
 

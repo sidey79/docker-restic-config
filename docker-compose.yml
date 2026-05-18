@@ -4,13 +4,9 @@ services:
   restic:
     image: restic/restic:0.18.1
     container_name: restic
-    env_file:
-      - .env
     environment:
       - TZ=Europe/Berlin
-      - RESTIC_PASSWORD_FILE=/run/secrets/restic_password
-    secrets:
-      - restic_password
+      - RESTIC_PASSWORD=${RESTIC_PASSWORD}
     volumes:
       - ${RESTIC_REPOSITORY_DIR}:/repository
       - ${RESTIC_CACHE_DIR}:/cache
@@ -31,7 +27,3 @@ services:
       - ./scripts:/scripts:ro
     entrypoint: ["/bin/sh", "-c", "sleep infinity"]
     restart: unless-stopped
-
-secrets:
-  restic_password:
-    file: ${RESTIC_PASSWORD_FILE}
