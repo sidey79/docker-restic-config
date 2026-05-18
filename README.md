@@ -30,13 +30,15 @@ For SFTP repositories, set `RESTIC_REPOSITORY` to the service-specific target,
 for example:
 
 ```text
-RESTIC_REPOSITORY=sftp:backupuser@backuphost:/backup/restic/paperless
+RESTIC_REPOSITORY=sftp:tiffy:/data/zeus/restic/paperless
 RESTIC_SSH_DIR=/opt/docker/duplicati/config/.ssh
 ```
 
 `RESTIC_SSH_DIR` is mounted read-only to `/root/.ssh` inside the Restic
-container. The directory must contain the private key and a usable SSH config or
-known_hosts entry for the SFTP target.
+container. The stack provides `/root/.ssh/config` as an inline Compose config
+for `tiffy` on port `2222` with user `sbackupftp` and key
+`/root/.ssh/id.key`. The mounted SSH directory must contain that private key and
+the required host key trust material.
 
 Run one backup manually:
 

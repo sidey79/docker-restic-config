@@ -30,5 +30,35 @@ services:
       - ${BACKUP_SOURCE_N8N}:/source/n8n:ro
       - ${BACKUP_SOURCE_PORTAINER}:/source/portainer:ro
       - ./scripts:/scripts:ro
+    configs:
+      - source: restic_ssh_config
+        target: /root/.ssh/config
+        mode: 0400
+    extra_hosts:
+      - "tiffy:192.168.125.4"
+    networks:
+      - default
+      - backend_net
     entrypoint: ["/bin/sh", "-c", "sleep infinity"]
     restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.27.12.88/30
+          gateway: 172.27.12.89
+  backend_net:
+    external: true
+    name: network_backend_net
+
+configs:
+  restic_ssh_config:
+    content: |
+      Host tiffy
+        HostName tiffy
+        Port 2222
+        User sbackupftp
+        IdentityFile /root/.ssh/id.key
+        IdentitiesOnly yes
