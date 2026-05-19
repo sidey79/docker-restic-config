@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Restic backup job @JOB@ on schedule
+
+[Timer]
+OnCalendar=@ON_CALENDAR@
+Persistent=true
+RandomizedDelaySec=@RANDOMIZED_DELAY_SEC@
+AccuracySec=@ACCURACY_SEC@
+Unit=restic-backup@@JOB@.service
+
+[Install]
+WantedBy=timers.target
