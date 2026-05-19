@@ -21,4 +21,4 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Validate Renovate config
-        uses: rinchsan/renovate-config-validator@v0.2.0
+        run: docker run --rm -v "$PWD:/repo" -w /repo renovate/renovate:latest renovate-config-validator renovate.json
