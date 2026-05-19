@@ -75,6 +75,9 @@ By default the installer writes:
 - `/etc/systemd/system/restic-backup@<job>.timer`
 - `/etc/docker-restic-config/systemd.env`
 
+`CONFIG_DIR` changes the location of `systemd.env`; the installer also renders
+the matching `EnvironmentFile=` path into `restic-backup@.service`.
+
 Set `ENABLE_TIMERS=0` to install without enabling timers:
 
 ```sh

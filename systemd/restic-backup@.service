@@ -6,7 +6,7 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-EnvironmentFile=/etc/docker-restic-config/systemd.env
+EnvironmentFile=@CONFIG_DIR@/systemd.env
 ExecStart=/bin/sh -eu -c 'cd "$${STACK_DIR}" && exec docker compose --project-directory "$${STACK_DIR}" -f "$${COMPOSE_FILE}" run --rm restic-job /scripts/restic-job.sh "%i"'
 StandardOutput=journal
 StandardError=journal

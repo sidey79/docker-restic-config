@@ -14,7 +14,11 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 install -d "${unit_dir}" "${config_dir}"
-install -m 0644 "${repo_dir}/systemd/restic-backup@.service" "${unit_dir}/restic-backup@.service"
+sed \
+  -e "s|@CONFIG_DIR@|${config_dir}|g" \
+  "${repo_dir}/systemd/restic-backup@.service" \
+  > "${unit_dir}/restic-backup@.service"
+chmod 0644 "${unit_dir}/restic-backup@.service"
 
 cat > "${config_dir}/systemd.env" <<EOF
 STACK_DIR=${stack_dir}
