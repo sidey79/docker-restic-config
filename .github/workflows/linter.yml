@@ -21,4 +21,4 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Validate Renovate config
-        uses: rinchsan/renovate-config-validator@v0.2.0
+        uses: rinchsan/renovate-config-validator@v0.2.1
