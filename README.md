@@ -27,15 +27,9 @@ Configure the variables from `.env` in Portainer's stack environment and set
 `RESTIC_PASSWORD` there. The stack does not mount a password file so that
 Portainer can deploy it without pre-existing sidecar secret files.
 
-Service-specific job files set their own repository target. For Paperless,
-start from the example:
-
-```sh
-cp jobs/paperless.env.example jobs/paperless.env
-```
-
-Adjust `jobs/paperless.env` as needed. `RESTIC_SSH_DIR` is still configured in
-the stack environment and mounted read-only to `/root/.ssh` inside the Restic
+Service-specific job files set their own repository target. Paperless is
+configured in `jobs/paperless.env`. `RESTIC_SSH_DIR` is still configured in the
+stack environment and mounted read-only to `/root/.ssh` inside the Restic
 container.
 
 `RESTIC_SSH_DIR` is mounted read-only to `/root/.ssh` inside the Restic
