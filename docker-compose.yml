@@ -10,6 +10,8 @@ services:
       - RESTIC_KEEP_DAILY=${RESTIC_KEEP_DAILY}
       - RESTIC_KEEP_WEEKLY=${RESTIC_KEEP_WEEKLY}
       - RESTIC_KEEP_MONTHLY=${RESTIC_KEEP_MONTHLY}
+      - N8N_BACKUP_WEBHOOK_URL=${N8N_BACKUP_WEBHOOK_URL:-https://n8n:5678/webhook/backup-wf/backup-status}
+      - N8N_BACKUP_WEBHOOK_TIMEOUT=${N8N_BACKUP_WEBHOOK_TIMEOUT:-10}
     volumes:
       - ${RESTIC_REPOSITORY_DIR:-/opt/docker/restic/repository}:/repository
       - ${RESTIC_CACHE_DIR}:/cache

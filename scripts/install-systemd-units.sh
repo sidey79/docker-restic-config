@@ -36,6 +36,8 @@ STACK_DIR=${stack_dir}
 COMPOSE_FILE=${compose_file}
 COMPOSE_PROJECT_NAME=${compose_project_name}
 RESTIC_OUTPUT_DIR=${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}
+N8N_BACKUP_WEBHOOK_URL=${N8N_BACKUP_WEBHOOK_URL:-https://n8n:5678/webhook/backup-wf/backup-status}
+N8N_BACKUP_WEBHOOK_TIMEOUT=${N8N_BACKUP_WEBHOOK_TIMEOUT:-10}
 EOF
 chmod 0644 "${config_dir}/systemd.env"
 
@@ -43,8 +45,6 @@ if [ ! -e "${config_dir}/secrets.env" ]; then
   cat > "${config_dir}/secrets.env" <<EOF
 # Set secrets used by docker compose when jobs are started through systemd.
 # RESTIC_PASSWORD=
-# N8N_BACKUP_WEBHOOK_URL=
-# N8N_BACKUP_WEBHOOK_TIMEOUT=10
 EOF
 fi
 chmod 0600 "${config_dir}/secrets.env"
