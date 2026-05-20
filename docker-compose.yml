@@ -14,6 +14,7 @@ services:
       - ${RESTIC_REPOSITORY_DIR:-/opt/docker/restic/repository}:/repository
       - ${RESTIC_CACHE_DIR}:/cache
       - ${RESTIC_RESTORE_DIR}:/restore
+      - ${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}:/output
       - ${RESTIC_SSH_DIR:-/opt/docker/duplicati/config/.ssh}:/root/.ssh:ro
       - ${BACKUP_SOURCE_ZEUS}:/source/zeus:ro
       - ${BACKUP_SOURCE_ECODMS}:/source/ecodms:ro

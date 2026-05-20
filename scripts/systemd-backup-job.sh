@@ -10,10 +10,15 @@ fi
 stack_dir="${STACK_DIR:?STACK_DIR must be set}"
 compose_file="${COMPOSE_FILE:?COMPOSE_FILE must be set}"
 compose_project_name="${COMPOSE_PROJECT_NAME:-restic}"
+restic_output_dir="${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}"
+restic_json_file="${restic_output_dir}/${job_name}-backup.jsonl"
 
 status=0
 started_epoch="$(date +%s)"
 started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+mkdir -p "${restic_output_dir}"
+rm -f "${restic_json_file}"
 
 echo "==> Starting orchestrated backup job: ${job_name}"
 ./scripts/notify-backup-job.sh "${job_name}" started 0 "${started_at}" "" 0
@@ -50,10 +55,10 @@ duration_seconds=$((finished_epoch - started_epoch))
 
 if [ "${status}" -eq 0 ]; then
   echo "==> Orchestrated backup job completed: ${job_name}"
-  ./scripts/notify-backup-job.sh "${job_name}" success 0 "${started_at}" "${finished_at}" "${duration_seconds}"
+  ./scripts/notify-backup-job.sh "${job_name}" success 0 "${started_at}" "${finished_at}" "${duration_seconds}" "${restic_json_file}"
 else
   echo "==> Orchestrated backup job failed: ${job_name} status ${status}" >&2
-  ./scripts/notify-backup-job.sh "${job_name}" failure "${status}" "${started_at}" "${finished_at}" "${duration_seconds}"
+  ./scripts/notify-backup-job.sh "${job_name}" failure "${status}" "${started_at}" "${finished_at}" "${duration_seconds}" "${restic_json_file}"
 fi
 
 exit "${status}"

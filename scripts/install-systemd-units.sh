@@ -35,6 +35,7 @@ cat > "${config_dir}/systemd.env" <<EOF
 STACK_DIR=${stack_dir}
 COMPOSE_FILE=${compose_file}
 COMPOSE_PROJECT_NAME=${compose_project_name}
+RESTIC_OUTPUT_DIR=${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}
 EOF
 chmod 0644 "${config_dir}/systemd.env"
 

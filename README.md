@@ -20,7 +20,7 @@ from centrally installed host-level systemd timers.
 Create the local directories used by the stack:
 
 ```sh
-mkdir -p /opt/docker/restic/cache /opt/docker/restic/restore /opt/docker/restic/repository
+mkdir -p /opt/docker/restic/cache /opt/docker/restic/restore /opt/docker/restic/repository /opt/docker/restic/output
 ```
 
 Configure the variables from `.env` in Portainer's stack environment and set
@@ -124,8 +124,10 @@ and starts the webserver container again afterwards.
 If `N8N_BACKUP_WEBHOOK_URL` is set, the orchestrator sends JSON `started`,
 `success` and `failure` events to n8n. Notification delivery failures are logged
 but do not change the backup result. The payload contains `source`, `event`,
-`job`, `status`, `host`, `exitCode`, `timestamp`, `startedAt`, `finishedAt` and
-`durationSeconds`.
+`job`, `status`, `host`, `exitCode`, `timestamp`, `startedAt`, `finishedAt`,
+`durationSeconds` and `restic`. The `restic` field is the raw Restic
+`backup --json` summary object. The complete Restic JSONL output is also
+written to `${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}/<job>-backup.jsonl`.
 
 ## Scheduling
 
