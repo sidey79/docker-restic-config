@@ -116,9 +116,9 @@ command, then the Restic container, then the post-backup command. The post-backu
 command is also attempted when the pre-backup command or Restic fails, so stopped
 applications can be started again.
 
-The Paperless job stops the application containers while leaving Postgres running,
+The Paperless job stops the webserver container while leaving Postgres and helper services running,
 creates `/opt/docker/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
-and starts the application containers again afterwards.
+and starts the webserver container again afterwards.
 
 ## Scheduling
 
