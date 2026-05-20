@@ -6,6 +6,7 @@ unit_dir="${UNIT_DIR:-/etc/systemd/system}"
 config_dir="${CONFIG_DIR:-/etc/docker-restic-config}"
 stack_dir="${STACK_DIR:-${repo_dir}}"
 compose_file="${COMPOSE_FILE:-${stack_dir}/docker-compose.yml}"
+compose_project_name="${COMPOSE_PROJECT_NAME:-restic}"
 enable_timers="${ENABLE_TIMERS:-1}"
 
 if [ ! -d "${stack_dir}" ]; then
@@ -33,6 +34,7 @@ chmod 0644 "${unit_dir}/restic-backup@.service"
 cat > "${config_dir}/systemd.env" <<EOF
 STACK_DIR=${stack_dir}
 COMPOSE_FILE=${compose_file}
+COMPOSE_PROJECT_NAME=${compose_project_name}
 EOF
 chmod 0644 "${config_dir}/systemd.env"
 

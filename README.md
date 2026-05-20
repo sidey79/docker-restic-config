@@ -81,6 +81,9 @@ By default the installer writes:
 - `/etc/systemd/system/restic-backup@<job>.timer`
 - `/etc/docker-restic-config/systemd.env`
 
+The generated `systemd.env` pins `COMPOSE_PROJECT_NAME=restic` so host-level
+manual runs and timer runs reuse the existing `restic_default` Docker network.
+
 `CONFIG_DIR` changes the location of `systemd.env`; the installer also renders
 the matching `EnvironmentFile=` path into `restic-backup@.service`.
 
