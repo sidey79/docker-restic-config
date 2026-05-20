@@ -118,6 +118,26 @@ command, then the Restic container, then the post-backup command. The post-backu
 command is also attempted when the pre-backup command or Restic fails, so stopped
 applications can be started again.
 
+Generic systemd job flow:
+
+```text
+systemd on host
+  -> scripts/systemd-backup-job.sh <job> on host
+     -> scripts/notify-backup-job.sh <job> started on host
+     -> scripts/pre-backup-job.sh <job> on host
+        -> optional PRE_BACKUP_COMMAND from jobs/<job>.env
+     -> docker compose run restic-job /scripts/restic-job.sh <job>
+        -> scripts/restic-job.sh inside the Restic container
+        -> restic backup --json writes /output/<job>-backup.jsonl
+     -> scripts/post-backup-job.sh <job> on host
+        -> optional POST_BACKUP_COMMAND from jobs/<job>.env
+     -> scripts/notify-backup-job.sh <job> success|failure on host
+```
+
+The orchestrator keeps Docker control, application stop/start commands and n8n
+notifications on the host. Only the Restic repository operations run inside the
+`restic-job` container.
+
 The Paperless job stops the webserver container while leaving Postgres and helper services running,
 creates `/opt/docker/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
 and starts the webserver container again afterwards.
