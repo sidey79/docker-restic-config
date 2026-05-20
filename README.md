@@ -107,8 +107,14 @@ of the broad `/srv/backup/zeus` tree. This avoids overlapping snapshots for
 `ecodms`, `paperless-ngx`, `n8n` and `portainer`.
 
 Database dumps should be written uncompressed where practical, then atomically
-renamed from `*.tmp` to their final filename. Restic can then deduplicate stable
-SQL dumps more effectively.
+renamed from a temporary file to their final filename. Restic can then deduplicate
+stable SQL dumps more effectively.
+
+Jobs can define `PRE_BACKUP_COMMAND` in `jobs/<name>.env`. The systemd service
+runs this command on the host before starting the Restic container. If the
+pre-backup command fails, systemd does not start the Restic backup for that run.
+The Paperless job uses this hook to create `/opt/docker/paperless-ngx/db/latest.sql`
+with `pg_dump` immediately before the snapshot.
 
 ## Scheduling
 
