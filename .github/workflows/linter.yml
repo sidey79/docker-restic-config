@@ -10,7 +10,7 @@ jobs:
   docker-compose:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Prepare example environment
         run: cp .env.example .env
       - name: Validate compose file
@@ -19,6 +19,6 @@ jobs:
   renovate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Validate Renovate config
         run: docker run --rm -v "$PWD:/repo" -w /repo renovate/renovate:latest renovate-config-validator renovate.json
