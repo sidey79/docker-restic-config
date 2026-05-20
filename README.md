@@ -32,7 +32,7 @@ internal stack environment is not available to systemd. Put secrets needed by
 Compose, especially `RESTIC_PASSWORD`, into `/etc/docker-restic-config/secrets.env`
 on the host. Non-secret runtime settings such as `N8N_BACKUP_WEBHOOK_URL` are
 written to `/etc/docker-restic-config/systemd.env`; the default webhook URL is
-`https://n8n:5678/webhook/backup-wf/backup-status`. The installer creates
+`https://127.0.0.1:5678/webhook/backup-wf/backup-status`. The installer creates
 `secrets.env` as root-only placeholder if it does not exist.
 
 Service-specific job files set their own repository target. Paperless is

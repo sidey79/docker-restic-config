@@ -53,8 +53,14 @@ payload=$(printf '{"source":"restic","event":"backup","job":"%s","status":"%s","
   "${duration_seconds}" \
   "${restic_summary_json}")
 
+curl_tls_option=""
+if [ "${N8N_BACKUP_WEBHOOK_INSECURE:-0}" = "1" ]; then
+  curl_tls_option="--insecure"
+fi
+
 echo "==> Sending n8n backup notification: job=${job_name} status=${event_status} exitCode=${exit_code}"
-if ! curl --fail --silent --show-error --max-time "${N8N_BACKUP_WEBHOOK_TIMEOUT:-10}" \
+# shellcheck disable=SC2086
+if ! curl --fail --silent --show-error ${curl_tls_option} --max-time "${N8N_BACKUP_WEBHOOK_TIMEOUT:-10}" \
   --header "Content-Type: application/json" \
   --data "${payload}" \
   "${webhook_url}" >/dev/null; then
