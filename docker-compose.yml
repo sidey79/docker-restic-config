@@ -1,4 +1,4 @@
-name: docker-restic-config
+name: restic
 
 services:
   restic-job:

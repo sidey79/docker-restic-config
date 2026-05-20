@@ -27,6 +27,12 @@ Configure the variables from `.env` in Portainer's stack environment and set
 `RESTIC_PASSWORD` there. The stack does not mount a password file so that
 Portainer can deploy it without pre-existing sidecar secret files.
 
+When jobs are started through the host-level systemd units, Portainer's
+internal stack environment is not available to systemd. Put secrets needed by
+Compose, especially `RESTIC_PASSWORD`, into `/etc/docker-restic-config/secrets.env`
+on the host. The installer creates this file as root-only placeholder if it does
+not exist.
+
 Service-specific job files set their own repository target. Paperless is
 configured in `jobs/paperless.env`. `RESTIC_SSH_DIR` is still configured in the
 stack environment and mounted read-only to `/root/.ssh` inside the Restic
@@ -87,7 +93,7 @@ sudo ENABLE_TIMERS=0 ./scripts/install-systemd-units.sh
 If the deployed Portainer stack lives somewhere else, pass its path explicitly:
 
 ```sh
-sudo STACK_DIR=/opt/docker/portainer-compose-unpacker/stacks/docker-restic-config \
+sudo STACK_DIR=/opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config \
   ./scripts/install-systemd-units.sh
 ```
 
@@ -108,8 +114,8 @@ consistent application dumps and then execute the relevant Restic one-shot job:
 
 ```sh
 docker compose \
-  --project-directory /opt/docker/portainer-compose-unpacker/stacks/docker-restic-config \
-  -f /opt/docker/portainer-compose-unpacker/stacks/docker-restic-config/docker-compose.yml \
+  --project-directory /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config \
+  -f /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config/docker-compose.yml \
   run --rm restic-job /scripts/restic-job.sh paperless
 ```
 
