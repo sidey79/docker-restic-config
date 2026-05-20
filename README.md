@@ -29,7 +29,8 @@ Portainer can deploy it without pre-existing sidecar secret files.
 
 When jobs are started through the host-level systemd units, Portainer's
 internal stack environment is not available to systemd. Put secrets needed by
-Compose, especially `RESTIC_PASSWORD`, into `/etc/docker-restic-config/secrets.env`
+Compose, especially `RESTIC_PASSWORD`, and optional notification endpoints such as
+`N8N_BACKUP_WEBHOOK_URL` into `/etc/docker-restic-config/secrets.env`
 on the host. The installer creates this file as root-only placeholder if it does
 not exist.
 
@@ -119,6 +120,12 @@ applications can be started again.
 The Paperless job stops the webserver container while leaving Postgres and helper services running,
 creates `/opt/docker/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
 and starts the webserver container again afterwards.
+
+If `N8N_BACKUP_WEBHOOK_URL` is set, the orchestrator sends JSON `started`,
+`success` and `failure` events to n8n. Notification delivery failures are logged
+but do not change the backup result. The payload contains `source`, `event`,
+`job`, `status`, `host`, `exitCode`, `timestamp`, `startedAt`, `finishedAt` and
+`durationSeconds`.
 
 ## Scheduling
 

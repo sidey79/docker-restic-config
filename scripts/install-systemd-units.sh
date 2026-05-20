@@ -42,6 +42,8 @@ if [ ! -e "${config_dir}/secrets.env" ]; then
   cat > "${config_dir}/secrets.env" <<EOF
 # Set secrets used by docker compose when jobs are started through systemd.
 # RESTIC_PASSWORD=
+# N8N_BACKUP_WEBHOOK_URL=
+# N8N_BACKUP_WEBHOOK_TIMEOUT=10
 EOF
 fi
 chmod 0600 "${config_dir}/secrets.env"

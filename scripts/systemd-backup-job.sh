@@ -12,8 +12,11 @@ compose_file="${COMPOSE_FILE:?COMPOSE_FILE must be set}"
 compose_project_name="${COMPOSE_PROJECT_NAME:-restic}"
 
 status=0
+started_epoch="$(date +%s)"
+started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 echo "==> Starting orchestrated backup job: ${job_name}"
+./scripts/notify-backup-job.sh "${job_name}" started 0 "${started_at}" "" 0
 ./scripts/pre-backup-job.sh "${job_name}" || status=$?
 
 if [ "${status}" -eq 0 ]; then
@@ -41,10 +44,16 @@ if [ "${post_status:-0}" -ne 0 ]; then
   fi
 fi
 
+finished_epoch="$(date +%s)"
+finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+duration_seconds=$((finished_epoch - started_epoch))
+
 if [ "${status}" -eq 0 ]; then
   echo "==> Orchestrated backup job completed: ${job_name}"
+  ./scripts/notify-backup-job.sh "${job_name}" success 0 "${started_at}" "${finished_at}" "${duration_seconds}"
 else
   echo "==> Orchestrated backup job failed: ${job_name} status ${status}" >&2
+  ./scripts/notify-backup-job.sh "${job_name}" failure "${status}" "${started_at}" "${finished_at}" "${duration_seconds}"
 fi
 
 exit "${status}"
