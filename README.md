@@ -110,11 +110,15 @@ Database dumps should be written uncompressed where practical, then atomically
 renamed from a temporary file to their final filename. Restic can then deduplicate
 stable SQL dumps more effectively.
 
-Jobs can define `PRE_BACKUP_COMMAND` in `jobs/<name>.env`. The systemd service
-runs this command on the host before starting the Restic container. If the
-pre-backup command fails, systemd does not start the Restic backup for that run.
-The Paperless job uses this hook to create `/opt/docker/paperless-ngx/db/latest.sql`
-with `pg_dump` immediately before the snapshot.
+Jobs can define `PRE_BACKUP_COMMAND` and `POST_BACKUP_COMMAND` in `jobs/<name>.env`.
+The systemd service runs a host-side orchestrator that executes the pre-backup
+command, then the Restic container, then the post-backup command. The post-backup
+command is also attempted when the pre-backup command or Restic fails, so stopped
+applications can be started again.
+
+The Paperless job stops the application containers while leaving Postgres running,
+creates `/opt/docker/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
+and starts the application containers again afterwards.
 
 ## Scheduling
 

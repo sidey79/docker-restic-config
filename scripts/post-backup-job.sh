@@ -19,11 +19,11 @@ set -a
 . "${job_file}"
 set +a
 
-pre_backup_command="${PRE_BACKUP_COMMAND:-}"
-if [ -z "${pre_backup_command}" ]; then
-  echo "==> No pre-backup command configured for ${job_name}"
+post_backup_command="${POST_BACKUP_COMMAND:-}"
+if [ -z "${post_backup_command}" ]; then
+  echo "==> No post-backup command configured for ${job_name}"
   exit 0
 fi
 
-echo "==> Running pre-backup command for ${job_name}"
-sh -eu -c "${pre_backup_command}"
+echo "==> Running post-backup command for ${job_name}"
+sh -eu -c "${post_backup_command}"
