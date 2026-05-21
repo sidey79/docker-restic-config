@@ -6,7 +6,18 @@ unit_dir="${UNIT_DIR:-/etc/systemd/system}"
 config_dir="${CONFIG_DIR:-/etc/docker-restic-config}"
 stack_dir="${STACK_DIR:-${repo_dir}}"
 compose_file="${COMPOSE_FILE:-${stack_dir}/docker-compose.yml}"
+compose_project_name="${COMPOSE_PROJECT_NAME:-restic}"
 enable_timers="${ENABLE_TIMERS:-1}"
+
+if [ ! -d "${stack_dir}" ]; then
+  echo "STACK_DIR does not exist: ${stack_dir}" >&2
+  exit 66
+fi
+
+if [ ! -f "${compose_file}" ]; then
+  echo "COMPOSE_FILE does not exist: ${compose_file}" >&2
+  exit 66
+fi
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run this installer as root so it can write ${unit_dir} and reload systemd." >&2
@@ -23,8 +34,21 @@ chmod 0644 "${unit_dir}/restic-backup@.service"
 cat > "${config_dir}/systemd.env" <<EOF
 STACK_DIR=${stack_dir}
 COMPOSE_FILE=${compose_file}
+COMPOSE_PROJECT_NAME=${compose_project_name}
+RESTIC_OUTPUT_DIR=${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}
+N8N_BACKUP_WEBHOOK_URL=${N8N_BACKUP_WEBHOOK_URL:-https://127.0.0.1:5678/webhook/backup-wf/backup-status}
+N8N_BACKUP_WEBHOOK_TIMEOUT=${N8N_BACKUP_WEBHOOK_TIMEOUT:-10}
+N8N_BACKUP_WEBHOOK_INSECURE=${N8N_BACKUP_WEBHOOK_INSECURE:-1}
 EOF
 chmod 0644 "${config_dir}/systemd.env"
+
+if [ ! -e "${config_dir}/secrets.env" ]; then
+  cat > "${config_dir}/secrets.env" <<EOF
+# Set secrets used by docker compose when jobs are started through systemd.
+# RESTIC_PASSWORD=
+EOF
+fi
+chmod 0600 "${config_dir}/secrets.env"
 
 installed_timers=""
 for job_file in "${repo_dir}"/jobs/*.env; do

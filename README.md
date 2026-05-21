@@ -20,12 +20,20 @@ from centrally installed host-level systemd timers.
 Create the local directories used by the stack:
 
 ```sh
-mkdir -p /opt/docker/restic/cache /opt/docker/restic/restore /opt/docker/restic/repository
+mkdir -p /opt/docker/restic/cache /opt/docker/restic/restore /opt/docker/restic/repository /opt/docker/restic/output
 ```
 
 Configure the variables from `.env` in Portainer's stack environment and set
 `RESTIC_PASSWORD` there. The stack does not mount a password file so that
 Portainer can deploy it without pre-existing sidecar secret files.
+
+When jobs are started through the host-level systemd units, Portainer's
+internal stack environment is not available to systemd. Put secrets needed by
+Compose, especially `RESTIC_PASSWORD`, into `/etc/docker-restic-config/secrets.env`
+on the host. Non-secret runtime settings such as `N8N_BACKUP_WEBHOOK_URL` are
+written to `/etc/docker-restic-config/systemd.env`; the default webhook URL is
+`https://127.0.0.1:5678/webhook/backup-wf/backup-status`. The installer creates
+`secrets.env` as root-only placeholder if it does not exist.
 
 Service-specific job files set their own repository target. Paperless is
 configured in `jobs/paperless.env`. `RESTIC_SSH_DIR` is still configured in the
@@ -75,6 +83,9 @@ By default the installer writes:
 - `/etc/systemd/system/restic-backup@<job>.timer`
 - `/etc/docker-restic-config/systemd.env`
 
+The generated `systemd.env` pins `COMPOSE_PROJECT_NAME=restic` so host-level
+manual runs and timer runs reuse the existing `restic_default` Docker network.
+
 `CONFIG_DIR` changes the location of `systemd.env`; the installer also renders
 the matching `EnvironmentFile=` path into `restic-backup@.service`.
 
@@ -87,7 +98,7 @@ sudo ENABLE_TIMERS=0 ./scripts/install-systemd-units.sh
 If the deployed Portainer stack lives somewhere else, pass its path explicitly:
 
 ```sh
-sudo STACK_DIR=/opt/docker/portainer-compose-unpacker/stacks/docker-restic-config \
+sudo STACK_DIR=/opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config \
   ./scripts/install-systemd-units.sh
 ```
 
@@ -98,8 +109,46 @@ of the broad `/srv/backup/zeus` tree. This avoids overlapping snapshots for
 `ecodms`, `paperless-ngx`, `n8n` and `portainer`.
 
 Database dumps should be written uncompressed where practical, then atomically
-renamed from `*.tmp` to their final filename. Restic can then deduplicate stable
-SQL dumps more effectively.
+renamed from a temporary file to their final filename. Restic can then deduplicate
+stable SQL dumps more effectively.
+
+Jobs can define `PRE_BACKUP_COMMAND` and `POST_BACKUP_COMMAND` in `jobs/<name>.env`.
+The systemd service runs a host-side orchestrator that executes the pre-backup
+command, then the Restic container, then the post-backup command. The post-backup
+command is also attempted when the pre-backup command or Restic fails, so stopped
+applications can be started again.
+
+Generic systemd job flow:
+
+```text
+systemd on host
+  -> scripts/systemd-backup-job.sh <job> on host
+     -> scripts/notify-backup-job.sh <job> started on host
+     -> scripts/pre-backup-job.sh <job> on host
+        -> optional PRE_BACKUP_COMMAND from jobs/<job>.env
+     -> docker compose run restic-job /scripts/restic-job.sh <job>
+        -> scripts/restic-job.sh inside the Restic container
+        -> restic backup --json writes /output/<job>-backup.jsonl
+     -> scripts/post-backup-job.sh <job> on host
+        -> optional POST_BACKUP_COMMAND from jobs/<job>.env
+     -> scripts/notify-backup-job.sh <job> success|failure on host
+```
+
+The orchestrator keeps Docker control, application stop/start commands and n8n
+notifications on the host. Only the Restic repository operations run inside the
+`restic-job` container.
+
+The Paperless job stops the webserver container while leaving Postgres and helper services running,
+creates `/opt/docker/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
+and starts the webserver container again afterwards.
+
+If `N8N_BACKUP_WEBHOOK_URL` is set, the orchestrator sends JSON `started`,
+`success` and `failure` events to n8n. Notification delivery failures are logged
+but do not change the backup result. The payload contains `source`, `event`,
+`job`, `status`, `host`, `exitCode`, `timestamp`, `startedAt`, `finishedAt`,
+`durationSeconds` and `restic`. The `restic` field is the raw Restic
+`backup --json` summary object. The complete Restic JSONL output is also
+written to `${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}/<job>-backup.jsonl`.
 
 ## Scheduling
 
@@ -108,8 +157,8 @@ consistent application dumps and then execute the relevant Restic one-shot job:
 
 ```sh
 docker compose \
-  --project-directory /opt/docker/portainer-compose-unpacker/stacks/docker-restic-config \
-  -f /opt/docker/portainer-compose-unpacker/stacks/docker-restic-config/docker-compose.yml \
+  --project-directory /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config \
+  -f /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config/docker-compose.yml \
   run --rm restic-job /scripts/restic-job.sh paperless
 ```
 
