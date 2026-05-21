@@ -2,9 +2,10 @@
 
 Central Restic stack for host and Docker application backups.
 
-The stack replaces the central Duplicati container model with one Restic
-one-shot runner. Backup jobs are started with `docker compose run --rm`, usually
-from centrally installed host-level systemd timers.
+The stack replaces the central Duplicati container model with one generic Restic
+one-shot runner. Each backup source is configured as its own job in `jobs/*.env`,
+including its own repository, tag and timer, and is started with
+`docker compose run --rm` from centrally installed host-level systemd timers.
 
 ## Layout
 
@@ -35,13 +36,13 @@ written to `/etc/docker-restic-config/systemd.env`; the default webhook URL is
 `https://127.0.0.1:5678/webhook/backup-wf/backup-status`. The installer creates
 `secrets.env` as root-only placeholder if it does not exist.
 
-Service-specific job files set their own repository target. Paperless is
-configured in `jobs/paperless.env`. `RESTIC_SSH_DIR` is still configured in the
-stack environment and mounted read-only to `/root/.ssh` inside the Restic
-container.
+Service-specific job files set their own repository target. Current jobs are
+`bitwarden`, `ecodms`, `etc`, `fhem`, `n8n`, `paperless`, `pictures`,
+`portainer`, `wordpress` and `z2m`. Paperless is configured in
+`jobs/paperless.env` and additionally defines host-side pre/post commands.
 
-`RESTIC_SSH_DIR` is mounted read-only to `/root/.ssh` inside the Restic
-container. The stack provides `/etc/ssh/ssh_config.d/tiffy.conf` as an inline Compose config
+`RESTIC_SSH_DIR` is configured in the stack environment and mounted read-only to
+`/root/.ssh` inside the Restic container. The stack provides `/etc/ssh/ssh_config.d/tiffy.conf` as an inline Compose config
 for `tiffy` on port `2222` with user `sbackupftp` and key
 `/root/.ssh/id.key`. The mounted SSH directory must contain that private key and
 the stack pins the ED25519 host key through `/etc/restic/known_hosts` with
@@ -104,9 +105,10 @@ sudo STACK_DIR=/opt/docker/portainer-compose-unpacker/stacks/restic/docker-resti
 
 ## Data source policy
 
-The stack intentionally backs up the more specific Zeus subdirectories instead
-of the broad `/srv/backup/zeus` tree. This avoids overlapping snapshots for
-`ecodms`, `paperless-ngx`, `n8n` and `portainer`.
+The stack intentionally backs up each source through its own job instead of a
+broad `/srv/backup/zeus` snapshot. This avoids overlapping snapshots for
+`ecodms`, `paperless-ngx`, `n8n` and `portainer` and keeps retention, tags and
+repository paths independent per backup source.
 
 Database dumps should be written uncompressed where practical, then atomically
 renamed from a temporary file to their final filename. Restic can then deduplicate
@@ -152,8 +154,10 @@ written to `${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}/<job>-backup.jsonl`.
 
 ## Scheduling
 
-Prefer host-level systemd timers from this repository. They prepare or require
-consistent application dumps and then execute the relevant Restic one-shot job:
+Prefer host-level systemd timers from this repository. Every `jobs/*.env` file
+with `SYSTEMD_ON_CALENDAR` is installed as a sibling `restic-backup@<job>.timer`
+next to the Paperless timer. The timers prepare or require consistent
+application dumps and then execute the relevant Restic one-shot job:
 
 ```sh
 docker compose \

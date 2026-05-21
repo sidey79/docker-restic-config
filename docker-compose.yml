@@ -19,7 +19,6 @@ services:
       - ${RESTIC_RESTORE_DIR}:/restore
       - ${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}:/output
       - ${RESTIC_SSH_DIR:-/opt/docker/duplicati/config/.ssh}:/root/.ssh:ro
-      - ${BACKUP_SOURCE_ZEUS}:/source/zeus:ro
       - ${BACKUP_SOURCE_ECODMS}:/source/ecodms:ro
       - ${BACKUP_SOURCE_PAPERLESS}:/source/paperless-ngx:ro
       - ${BACKUP_SOURCE_PAPERLESS_DATA}:/source/paperless-data:ro
