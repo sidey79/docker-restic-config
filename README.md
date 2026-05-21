@@ -90,10 +90,17 @@ manual runs and timer runs reuse the existing `restic_default` Docker network.
 `CONFIG_DIR` changes the location of `systemd.env`; the installer also renders
 the matching `EnvironmentFile=` path into `restic-backup@.service`.
 
-Set `ENABLE_TIMERS=0` to install without enabling timers:
+Set `ENABLE_TIMERS=0` to install timer unit files without enabling them:
 
 ```sh
 sudo ENABLE_TIMERS=0 ./scripts/install-systemd-units.sh
+```
+
+Use `JOBS` to render only selected job timers. This installs only the Paperless
+timer unit file and leaves it disabled:
+
+```sh
+sudo JOBS=paperless ENABLE_TIMERS=0 ./scripts/install-systemd-units.sh
 ```
 
 If the deployed Portainer stack lives somewhere else, pass its path explicitly:

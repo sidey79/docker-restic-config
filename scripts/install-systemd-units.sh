@@ -8,6 +8,17 @@ stack_dir="${STACK_DIR:-${repo_dir}}"
 compose_file="${COMPOSE_FILE:-${stack_dir}/docker-compose.yml}"
 compose_project_name="${COMPOSE_PROJECT_NAME:-restic}"
 enable_timers="${ENABLE_TIMERS:-1}"
+selected_jobs="${JOBS:-}"
+
+job_is_selected() {
+  [ -n "${selected_jobs}" ] || return 0
+
+  for selected_job in ${selected_jobs}; do
+    [ "${selected_job}" = "$1" ] && return 0
+  done
+
+  return 1
+}
 
 if [ ! -d "${stack_dir}" ]; then
   echo "STACK_DIR does not exist: ${stack_dir}" >&2
@@ -55,6 +66,7 @@ for job_file in "${repo_dir}"/jobs/*.env; do
   [ -e "${job_file}" ] || continue
 
   job_name="$(basename "${job_file}" .env)"
+  job_is_selected "${job_name}" || continue
   unset SYSTEMD_ON_CALENDAR SYSTEMD_RANDOMIZED_DELAY_SEC SYSTEMD_ACCURACY_SEC
   # shellcheck disable=SC1090
   . "${job_file}"
