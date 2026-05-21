@@ -141,7 +141,7 @@ notifications on the host. Only the Restic repository operations run inside the
 `restic-job` container.
 
 The Paperless job stops the webserver container while leaving Postgres and helper services running,
-creates `/opt/docker/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
+creates `/srv/backup/zeus/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
 and starts the webserver container again afterwards.
 
 If `N8N_BACKUP_WEBHOOK_URL` is set, the orchestrator sends JSON `started`,
