@@ -113,12 +113,12 @@ sudo STACK_DIR=/opt/docker/portainer-compose-unpacker/stacks/restic/docker-resti
 ## Updating existing timers after repository updates
 
 If your host already has `restic-backup@*.timer` units from an older checkout,
-update them in place after pulling a new repository version:
+update only those existing timers after pulling a new repository version:
 
 ```sh
 cd /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config
 git pull --ff-only
-sudo ./scripts/install-systemd-units.sh
+sudo UPDATE_EXISTING_ONLY=1 ./scripts/install-systemd-units.sh
 ```
 
 If your stack checkout lives somewhere else, pass it explicitly so
@@ -132,6 +132,19 @@ If you only want a subset of jobs enabled on this host, rerun with `JOBS`:
 
 ```sh
 sudo JOBS="paperless n8n" ./scripts/install-systemd-units.sh
+```
+
+`UPDATE_EXISTING_ONLY=1` can be combined with `JOBS` to update the intersection
+of both selectors (only listed jobs that already have timer unit files):
+
+```sh
+sudo UPDATE_EXISTING_ONLY=1 JOBS="paperless n8n" ./scripts/install-systemd-units.sh
+```
+
+If you only want to create timer files without enabling them, use `ENABLE_TIMERS=0`:
+
+```sh
+sudo JOBS="paperless n8n" ENABLE_TIMERS=0 ./scripts/install-systemd-units.sh
 ```
 
 The installer creates or updates matching unit files and enables selected
