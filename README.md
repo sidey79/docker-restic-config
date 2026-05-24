@@ -110,6 +110,47 @@ sudo STACK_DIR=/opt/docker/portainer-compose-unpacker/stacks/restic/docker-resti
   ./scripts/install-systemd-units.sh
 ```
 
+## Updating existing timers after repository updates
+
+If your host already has `restic-backup@*.timer` units from an older checkout,
+update them in place after pulling a new repository version:
+
+```sh
+cd /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config
+git pull --ff-only
+sudo ./scripts/install-systemd-units.sh
+```
+
+If your stack checkout lives somewhere else, pass it explicitly so
+`/etc/docker-restic-config/systemd.env` points to the correct Compose project:
+
+```sh
+sudo STACK_DIR=/your/stack/path ./scripts/install-systemd-units.sh
+```
+
+If you only want a subset of jobs enabled on this host, rerun with `JOBS`:
+
+```sh
+sudo JOBS="paperless n8n" ./scripts/install-systemd-units.sh
+```
+
+The installer creates or updates matching unit files and enables selected
+timers, but it does not remove stale timer units from jobs that no longer
+exist or should no longer run. Disable and remove obsolete timers manually:
+
+```sh
+sudo systemctl disable --now restic-backup@oldjob.timer
+sudo rm -f /etc/systemd/system/restic-backup@oldjob.timer
+sudo systemctl daemon-reload
+```
+
+Verify the final state:
+
+```sh
+systemctl list-timers 'restic-backup@*.timer'
+systemctl status restic-backup@paperless.timer
+```
+
 ## Data source policy
 
 The stack intentionally backs up each source through its own job instead of a
