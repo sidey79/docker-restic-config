@@ -51,18 +51,27 @@ the stack pins the ED25519 host key through `/etc/restic/known_hosts` with
 Run one backup manually:
 
 ```sh
+set -a
+. jobs/paperless.env
+set +a
 docker compose run --rm restic-job /scripts/restic-job.sh paperless
 ```
 
 List snapshots for a specific repository:
 
 ```sh
+set -a
+. jobs/paperless.env
+set +a
 docker compose run --rm restic-job -c '. /jobs/paperless.env && export RESTIC_REPOSITORY RESTIC_CACHE_DIR=/cache && restic snapshots'
 ```
 
 Restore into the configured restore directory:
 
 ```sh
+set -a
+. jobs/paperless.env
+set +a
 docker compose run --rm restic-job -c '. /jobs/paperless.env && export RESTIC_REPOSITORY RESTIC_CACHE_DIR=/cache && restic restore latest --target /restore'
 ```
 
@@ -171,6 +180,12 @@ broad `/srv/backup/zeus` snapshot. This avoids overlapping snapshots for
 `ecodms`, `paperless-ngx`, `n8n` and `portainer` and keeps retention, tags and
 repository paths independent per backup source.
 
+Each job declares the host paths that should be mounted into the Restic container
+with `RESTIC_CONTAINER_BACKUP_SOURCE_1`, `RESTIC_CONTAINER_BACKUP_SOURCE_2` and
+`RESTIC_CONTAINER_BACKUP_SOURCE_3`. The names are intentionally container-scoped:
+Compose mounts them as `/source/1`, `/source/2` and `/source/3`, and the job's
+`BACKUP_PATHS` selects the directories or files to include.
+
 Database dumps should be written uncompressed where practical, then atomically
 renamed from a temporary file to their final filename. Restic can then deduplicate
 stable SQL dumps more effectively.
@@ -209,7 +224,7 @@ The FHEM job starts at 00:16 and waits until `LoggingDB.reduce2:current_job`
 and `FHEM.Backup:Backupnow` both have a current-day finished timestamp. It then
 creates an uncompressed MariaDB dump as `/backup/latest.sql` inside the MariaDB
 container. That path is backed by `/srv/backup/zeus/fhem` on the host and is
-backed up via `/source/zeus/fhem/latest.sql`; FHEM app data is backed up
+backed up via `/source/2/fhem/latest.sql`; FHEM app data is backed up
 separately from `/opt/docker/fhem/app`. By default the dump uses
 `MYSQL_ROOT_PASSWORD` from the MariaDB container environment. Set
 `FHEM_DB_PASSWORD` in `/etc/docker-restic-config/secrets.env` only when an

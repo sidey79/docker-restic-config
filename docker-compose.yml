@@ -19,18 +19,9 @@ services:
       - ${RESTIC_RESTORE_DIR}:/restore
       - ${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}:/output
       - ${RESTIC_SSH_DIR:-/opt/docker/duplicati/config/.ssh}:/root/.ssh:ro
-      - ${BACKUP_SOURCE_ECODMS}:/source/ecodms:ro
-      - ${BACKUP_SOURCE_PAPERLESS}:/source/paperless-ngx:ro
-      - ${BACKUP_SOURCE_PAPERLESS_DATA}:/source/paperless-data:ro
-      - ${BACKUP_SOURCE_PAPERLESS_MEDIA}:/source/paperless-media:ro
-      - ${BACKUP_SOURCE_ETC}:/source/etc:ro
-      - ${BACKUP_SOURCE_FHEM}:/source/fhem:ro
-      - ${BACKUP_SOURCE_WORDPRESS}:/source/wordpress:ro
-      - ${BACKUP_SOURCE_PICTURES}:/source/pictures:ro
-      - ${BACKUP_SOURCE_BITWARDEN}:/source/bitwarden:ro
-      - ${BACKUP_SOURCE_Z2M}:/source/z2m:ro
-      - ${BACKUP_SOURCE_N8N}:/source/n8n:ro
-      - ${BACKUP_SOURCE_PORTAINER}:/source/portainer:ro
+      - ${RESTIC_CONTAINER_BACKUP_SOURCE_1:-${RESTIC_EMPTY_SOURCE_DIR:-/opt/docker/restic/empty-source}}:/source/1:ro
+      - ${RESTIC_CONTAINER_BACKUP_SOURCE_2:-${RESTIC_EMPTY_SOURCE_DIR:-/opt/docker/restic/empty-source}}:/source/2:ro
+      - ${RESTIC_CONTAINER_BACKUP_SOURCE_3:-${RESTIC_EMPTY_SOURCE_DIR:-/opt/docker/restic/empty-source}}:/source/3:ro
       - ./scripts:/scripts:ro
       - ./jobs:/jobs:ro
     configs:
