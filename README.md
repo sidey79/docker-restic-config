@@ -205,6 +205,16 @@ The Paperless job stops the webserver container while leaving Postgres and helpe
 creates `/srv/backup/zeus/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
 and starts the webserver container again afterwards.
 
+The FHEM job starts at 00:16 and waits until `LoggingDB.reduce2:current_job`
+and `FHEM.Backup:Backupnow` both have a current-day finished timestamp. It then
+creates an uncompressed MariaDB dump as `/backup/latest.sql` inside the MariaDB
+container. That path is backed by `/srv/backup/zeus/fhem` on the host and is
+backed up via `/source/zeus/fhem/latest.sql`; FHEM app data is backed up
+separately from `/opt/docker/fhem/app`. By default the dump uses
+`MYSQL_ROOT_PASSWORD` from the MariaDB container environment. Set
+`FHEM_DB_PASSWORD` in `/etc/docker-restic-config/secrets.env` only when an
+explicit override is needed.
+
 If `N8N_BACKUP_WEBHOOK_URL` is set, the orchestrator sends JSON `started`,
 `success` and `failure` events to n8n. Notification delivery failures are logged
 but do not change the backup result. The payload contains `source`, `event`,

@@ -73,6 +73,8 @@ if [ ! -e "${config_dir}/secrets.env" ]; then
   cat > "${config_dir}/secrets.env" <<EOF_SECRETS_ENV
 # Set secrets used by docker compose when jobs are started through systemd.
 # RESTIC_PASSWORD=
+# Optional override. By default the FHEM job uses MYSQL_ROOT_PASSWORD from the MariaDB container.
+# FHEM_DB_PASSWORD=
 EOF_SECRETS_ENV
 fi
 chmod 0600 "${config_dir}/secrets.env"
