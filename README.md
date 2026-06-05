@@ -230,6 +230,12 @@ separately from `/opt/docker/fhem/app`. By default the dump uses
 `FHEM_DB_PASSWORD` in `/etc/docker-restic-config/secrets.env` only when an
 explicit override is needed.
 
+The z2m job backs up the live Zigbee2MQTT data directory
+`/opt/docker/fhem/zigbee2mqtt/data` without stopping the container. This includes
+`configuration.yaml`, `coordinator_backup.json`, `database.db`, `state.json`,
+device icons and logs. The Zigbee network key is covered by the backup because
+it is stored in `configuration.yaml` and also present in the coordinator backup.
+
 If `N8N_BACKUP_WEBHOOK_URL` is set, the orchestrator sends JSON `started`,
 `success` and `failure` events to n8n. Notification delivery failures are logged
 but do not change the backup result. The payload contains `source`, `event`,
