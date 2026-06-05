@@ -220,6 +220,23 @@ The Paperless job stops the webserver container while leaving Postgres and helpe
 creates `/srv/backup/zeus/paperless-ngx/db/latest.sql` with `pg_dump`, runs Restic,
 and starts the webserver container again afterwards.
 
+The Portainer job does not need a local Portainer stack file. Before Restic runs,
+it calls Portainer's backup API and writes the archive atomically to
+`/srv/backup/zeus/portainer/latest.tar.gz`; Restic backs up that generated file.
+Portainer documents that this backup includes the Portainer database and stack
+files deployed through Portainer, but not the managed containers, images,
+volumes or application data. Create an administrator API key in Portainer and put
+it into `/etc/docker-restic-config/secrets.env`:
+
+```sh
+PORTAINER_API_KEY=ptr_...
+PORTAINER_BACKUP_PASSWORD=change-this-encryption-password
+```
+
+`PORTAINER_BACKUP_PASSWORD` is optional for the API request, but using it is
+recommended because the generated archive contains sensitive Portainer
+configuration and credentials.
+
 The FHEM job starts at 00:16 and waits until `LoggingDB.reduce2:current_job`
 and `FHEM.Backup:Backupnow` both have a current-day finished timestamp. It then
 creates an uncompressed MariaDB dump as `/backup/latest.sql` inside the MariaDB

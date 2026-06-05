@@ -75,6 +75,9 @@ if [ ! -e "${config_dir}/secrets.env" ]; then
 # RESTIC_PASSWORD=
 # Optional override. By default the FHEM job uses MYSQL_ROOT_PASSWORD from the MariaDB container.
 # FHEM_DB_PASSWORD=
+# Portainer backup API credentials. PORTAINER_BACKUP_PASSWORD is optional but recommended.
+# PORTAINER_API_KEY=
+# PORTAINER_BACKUP_PASSWORD=
 EOF_SECRETS_ENV
 fi
 chmod 0600 "${config_dir}/secrets.env"
