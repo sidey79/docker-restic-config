@@ -12,6 +12,20 @@ compose_file="${COMPOSE_FILE:?COMPOSE_FILE must be set}"
 compose_project_name="${COMPOSE_PROJECT_NAME:-restic}"
 restic_output_dir="${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}"
 restic_json_file="${restic_output_dir}/${job_name}-backup.jsonl"
+job_dir="${JOB_DIR:-./jobs}"
+job_file="${job_dir}/${job_name}.env"
+
+if [ ! -r "${job_file}" ]; then
+  echo "Job file not found or not readable: ${job_file}" >&2
+  exit 66
+fi
+
+set -a
+# shellcheck disable=SC1090
+. "${job_file}"
+set +a
+
+: "${RESTIC_CONTAINER_BACKUP_SOURCE_1:?RESTIC_CONTAINER_BACKUP_SOURCE_1 must be set in ${job_file}}"
 
 status=0
 started_epoch="$(date +%s)"

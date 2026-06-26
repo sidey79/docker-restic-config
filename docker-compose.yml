@@ -10,7 +10,7 @@ services:
       - RESTIC_KEEP_DAILY=${RESTIC_KEEP_DAILY}
       - RESTIC_KEEP_WEEKLY=${RESTIC_KEEP_WEEKLY}
       - RESTIC_KEEP_MONTHLY=${RESTIC_KEEP_MONTHLY}
-      - N8N_BACKUP_WEBHOOK_URL=${N8N_BACKUP_WEBHOOK_URL:-https://127.0.0.1:5678/webhook/backup-wf/backup-status}
+      - N8N_BACKUP_WEBHOOK_URL=${N8N_BACKUP_WEBHOOK_URL:-https://127.0.0.1:5678/webhook/restic/status}
       - N8N_BACKUP_WEBHOOK_TIMEOUT=${N8N_BACKUP_WEBHOOK_TIMEOUT:-10}
       - N8N_BACKUP_WEBHOOK_INSECURE=${N8N_BACKUP_WEBHOOK_INSECURE:-1}
     volumes:
@@ -19,19 +19,9 @@ services:
       - ${RESTIC_RESTORE_DIR}:/restore
       - ${RESTIC_OUTPUT_DIR:-/opt/docker/restic/output}:/output
       - ${RESTIC_SSH_DIR:-/opt/docker/duplicati/config/.ssh}:/root/.ssh:ro
-      - ${BACKUP_SOURCE_ZEUS}:/source/zeus:ro
-      - ${BACKUP_SOURCE_ECODMS}:/source/ecodms:ro
-      - ${BACKUP_SOURCE_PAPERLESS}:/source/paperless-ngx:ro
-      - ${BACKUP_SOURCE_PAPERLESS_DATA}:/source/paperless-data:ro
-      - ${BACKUP_SOURCE_PAPERLESS_MEDIA}:/source/paperless-media:ro
-      - ${BACKUP_SOURCE_ETC}:/source/etc:ro
-      - ${BACKUP_SOURCE_FHEM}:/source/fhem:ro
-      - ${BACKUP_SOURCE_WORDPRESS}:/source/wordpress:ro
-      - ${BACKUP_SOURCE_PICTURES}:/source/pictures:ro
-      - ${BACKUP_SOURCE_BITWARDEN}:/source/bitwarden:ro
-      - ${BACKUP_SOURCE_Z2M}:/source/z2m:ro
-      - ${BACKUP_SOURCE_N8N}:/source/n8n:ro
-      - ${BACKUP_SOURCE_PORTAINER}:/source/portainer:ro
+      - ${RESTIC_CONTAINER_BACKUP_SOURCE_1:-${RESTIC_EMPTY_SOURCE_DIR:-/opt/docker/restic/empty-source}}:/source/1:ro
+      - ${RESTIC_CONTAINER_BACKUP_SOURCE_2:-${RESTIC_EMPTY_SOURCE_DIR:-/opt/docker/restic/empty-source}}:/source/2:ro
+      - ${RESTIC_CONTAINER_BACKUP_SOURCE_3:-${RESTIC_EMPTY_SOURCE_DIR:-/opt/docker/restic/empty-source}}:/source/3:ro
       - ./scripts:/scripts:ro
       - ./jobs:/jobs:ro
     configs:
