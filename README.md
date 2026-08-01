@@ -241,11 +241,22 @@ The FHEM job starts at 00:16 and waits until `LoggingDB.reduce2:current_job`
 and `FHEM.Backup:Backupnow` both have a current-day finished timestamp. It then
 creates an uncompressed MariaDB dump as `/backup/latest.sql` inside the MariaDB
 container. That path is backed by `/srv/backup/zeus/fhem` on the host and is
-backed up via `/source/2/fhem/latest.sql`; FHEM app data is backed up
-separately from `/opt/docker/fhem/app`. By default the dump uses
+backed up via `/source/2/fhem/latest.sql`. The same hook creates a compressed
+PostgreSQL custom-format dump from `postgres-fhem/fhem`, validates it with
+`pg_restore --list`, and atomically publishes it as
+`/srv/backup/zeus/fhem/postgres/latest.dump`. Restic includes it as
+`/source/2/fhem/postgres/latest.dump`; a failed, empty, or invalid dump aborts
+the job. FHEM app data is backed up separately from `/opt/docker/fhem/app`.
+By default the MariaDB dump uses
 `MYSQL_ROOT_PASSWORD` from the MariaDB container environment. Set
 `FHEM_DB_PASSWORD` in `/etc/docker-restic-config/secrets.env` only when an
-explicit override is needed.
+explicit override is needed. PostgreSQL uses the existing container role and
+local authentication; no database password is copied into this repository.
+
+MariaDB remains unchanged as a rollback backup. Remove it only after the agreed
+rollback period, multiple successful PostgreSQL backups, a verified restore,
+confirmed `LoggingDB_PG` read/write access, and explicit operational approval.
+See [`docs/fhem-postgresql-restore.md`](docs/fhem-postgresql-restore.md).
 
 The z2m job backs up the live Zigbee2MQTT data directory
 `/opt/docker/fhem/zigbee2mqtt/data` without stopping the container. This includes
