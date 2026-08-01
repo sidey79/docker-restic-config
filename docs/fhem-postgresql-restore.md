@@ -8,6 +8,11 @@ snapshots for as long as the unchanged retention policy keeps them.
 Internal `pg_dump` compression is disabled deliberately. Restic performs the
 compression and can deduplicate changes between successive dump files.
 
+The same snapshot includes up to 14 daily CSV exports below
+`/source/2/fhem/postgres/csv/`. They contain the previous day exported from
+`LoggingDB_PG` and are intended for selective recovery only. Do not import them
+blindly after restoring a complete dump because that can create duplicate data.
+
 ## Run or inspect the backup
 
 The complete workflow, including the database dump, runs via:
@@ -18,7 +23,7 @@ sudo journalctl -u restic-backup@fhem.service -n 200 --no-pager
 ```
 
 Do not call `scripts/restic-job.sh` alone when a fresh dump is required because
-only the host-side pre-backup hook creates the dumps.
+only the host-side pre-backup hook creates the dump.
 
 ## Restore a dump from Restic
 

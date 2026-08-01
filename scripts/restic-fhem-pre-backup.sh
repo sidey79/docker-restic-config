@@ -10,7 +10,7 @@ pg_container="${FHEM_PG_CONTAINER:?FHEM_PG_CONTAINER must be set}"
 pg_db_name="${FHEM_PG_DB_NAME:?FHEM_PG_DB_NAME must be set}"
 pg_dump_file="${FHEM_PG_DUMP_FILE:?FHEM_PG_DUMP_FILE must be set}"
 
-status_cmd='%7Bjoin(%22%7C%22%2CReadingsVal(%22LoggingDB.reduce2%22%2C%22current_job%22%2C%22unknown%22)%2CReadingsTimestamp(%22LoggingDB.reduce2%22%2C%22current_job%22%2C%221970-01-01%2000%3A00%3A00%22)%2CReadingsVal(%22FHEM.Backup%22%2C%22Backupnow%22%2C%22on%22)%2CReadingsTimestamp(%22FHEM.Backup%22%2C%22Backupnow%22%2C%221970-01-01%2000%3A00%3A00%22))%7D'
+status_cmd='%7Bjoin(%22%7C%22%2CReadingsVal(%22LoggingDB.reduce2%22%2C%22current_job%22%2C%22unknown%22)%2CReadingsTimestamp(%22LoggingDB.reduce2%22%2C%22current_job%22%2C%221970-01-01%2000%3A00%3A00%22)%2CReadingsVal(%22FHEM.Backup%22%2C%22Backupnow%22%2C%22on%22)%2CReadingsVal(%22FHEM.Backup%22%2C%22pipeline_complete%22%2C%22missing%22)%2CReadingsTimestamp(%22FHEM.Backup%22%2C%22pipeline_complete%22%2C%221970-01-01%2000%3A00%3A00%22)%2CReadingsVal(%22FHEM.Backup%22%2C%22csv_status%22%2C%22missing%22))%7D'
 today="$(date +%F)"
 deadline=$(( $(date +%s) + wait_timeout ))
 
@@ -19,7 +19,7 @@ if [ "${fhem_web_insecure}" = "1" ]; then
   curl_opts="${curl_opts} --insecure"
 fi
 
-echo "==> Waiting for FHEM DB reduce and FHEM backup to finish for ${today}"
+echo "==> Waiting for FHEM DB reduce and backup pipeline to finish for ${today}"
 while :; do
   status="$(curl ${curl_opts} "${fhem_web_url}?cmd=${status_cmd}&XHR=1")"
 
@@ -31,25 +31,34 @@ while :; do
   reduce_job="${1:-unknown}"
   reduce_timestamp="${2:-1970-01-01 00:00:00}"
   backup_now="${3:-on}"
-  backup_timestamp="${4:-1970-01-01 00:00:00}"
+  pipeline_complete="${4:-missing}"
+  pipeline_timestamp="${5:-1970-01-01 00:00:00}"
+  csv_status="${6:-missing}"
 
   reduce_date="${reduce_timestamp%% *}"
-  backup_date="${backup_timestamp%% *}"
+  pipeline_date="${pipeline_timestamp%% *}"
 
   if [ "${reduce_job}" = "none" ] &&
      [ "${reduce_date}" = "${today}" ] &&
      [ "${backup_now}" = "off" ] &&
-     [ "${backup_date}" = "${today}" ]; then
-    echo "==> FHEM is ready for database dump"
-    break
+     [ "${pipeline_date}" = "${today}" ]; then
+    case "${pipeline_complete}" in
+      ok|warning)
+        if [ "${csv_status}" != "ok" ]; then
+          echo "==> WARNING: FHEM CSV export status is ${csv_status}; continuing with authoritative PostgreSQL dump" >&2
+        fi
+        echo "==> FHEM is ready for database dump"
+        break
+        ;;
+    esac
   fi
 
   if [ "$(date +%s)" -ge "${deadline}" ]; then
-    echo "Timed out waiting for FHEM readiness: reduce_job=${reduce_job} reduce_timestamp=${reduce_timestamp} backup_now=${backup_now} backup_timestamp=${backup_timestamp}" >&2
+    echo "Timed out waiting for FHEM readiness: reduce_job=${reduce_job} reduce_timestamp=${reduce_timestamp} backup_now=${backup_now} pipeline_complete=${pipeline_complete} pipeline_timestamp=${pipeline_timestamp} csv_status=${csv_status}" >&2
     exit 75
   fi
 
-  echo "==> FHEM not ready yet: reduce_job=${reduce_job} reduce_timestamp=${reduce_timestamp} backup_now=${backup_now} backup_timestamp=${backup_timestamp}"
+  echo "==> FHEM not ready yet: reduce_job=${reduce_job} reduce_timestamp=${reduce_timestamp} backup_now=${backup_now} pipeline_complete=${pipeline_complete} pipeline_timestamp=${pipeline_timestamp} csv_status=${csv_status}"
   sleep "${wait_interval}"
 done
 
