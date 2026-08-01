@@ -239,14 +239,15 @@ configuration and credentials.
 
 The FHEM job starts at 00:16 and waits until `LoggingDB.reduce2:current_job`
 and `FHEM.Backup:Backupnow` both have a current-day finished timestamp. It then
-creates a compressed PostgreSQL custom-format dump from `postgres-fhem/fhem` and
-validates it with
-`pg_restore --list`, and atomically publishes it as
+creates an uncompressed PostgreSQL custom-format dump from `postgres-fhem/fhem`
+validates it with `pg_restore --list`, and atomically publishes it as
 `/srv/backup/zeus/fhem/postgres/latest.dump`. Restic includes it as
 `/source/2/fhem/postgres/latest.dump`; a failed, empty, or invalid dump aborts
 the job. FHEM app data is backed up separately from `/opt/docker/fhem/app`.
 PostgreSQL uses the existing container role and
-local authentication; no database password is copied into this repository.
+local authentication; no database password is copied into this repository. The
+dump's internal compression is disabled so Restic can compress and deduplicate
+the archive itself.
 
 New MariaDB dumps are no longer created or included. Existing MariaDB backups
 remain available in older Restic snapshots according to their retention period;

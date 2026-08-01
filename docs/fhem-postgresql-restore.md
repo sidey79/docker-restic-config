@@ -1,13 +1,16 @@
 # FHEM PostgreSQL restore
 
-The `fhem` job stores the PostgreSQL custom-format dump as
+The `fhem` job stores the internally uncompressed PostgreSQL custom-format dump as
 `/source/2/fhem/postgres/latest.dump`. MariaDB dumps are no longer created or
 included in new snapshots. Existing MariaDB backups remain available in older
 snapshots for as long as the unchanged retention policy keeps them.
 
+Internal `pg_dump` compression is disabled deliberately. Restic performs the
+compression and can deduplicate changes between successive dump files.
+
 ## Run or inspect the backup
 
-The complete workflow, including both database dumps, runs via:
+The complete workflow, including the database dump, runs via:
 
 ```sh
 sudo systemctl start restic-backup@fhem.service

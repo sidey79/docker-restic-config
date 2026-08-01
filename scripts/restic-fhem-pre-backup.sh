@@ -59,7 +59,7 @@ pg_tmp_dump="$(mktemp "${pg_dump_file}.tmp.XXXXXX")"
 
 echo "==> Creating FHEM PostgreSQL custom-format dump from ${pg_container}/${pg_db_name}: ${pg_dump_file}"
 if ! docker exec "${pg_container}" \
-  sh -eu -c 'exec pg_dump --format=custom --compress=6 --username="${POSTGRES_USER:?POSTGRES_USER is not set}" --dbname="$1"' \
+  sh -eu -c 'exec pg_dump --format=custom --compress=0 --username="${POSTGRES_USER:?POSTGRES_USER is not set}" --dbname="$1"' \
   sh "${pg_db_name}" > "${pg_tmp_dump}"; then
   echo "PostgreSQL dump failed; incomplete temporary file left at ${pg_tmp_dump}" >&2
   exit 74
