@@ -1,8 +1,9 @@
 # FHEM PostgreSQL restore
 
 The `fhem` job stores the PostgreSQL custom-format dump as
-`/source/2/fhem/postgres/latest.dump`. The existing MariaDB dump
-`/source/2/fhem/latest.sql` remains an unchanged rollback backup.
+`/source/2/fhem/postgres/latest.dump`. MariaDB dumps are no longer created or
+included in new snapshots. Existing MariaDB backups remain available in older
+snapshots for as long as the unchanged retention policy keeps them.
 
 ## Run or inspect the backup
 
@@ -83,7 +84,8 @@ explicit approval. Never use `fhem` as the target of the test commands.
 1. Stop or isolate FHEM writes. Record the database owner, roles, grants,
    extensions, encoding and locale.
 2. Prefer restoring into a newly named database and switching FHEM deliberately.
-   Keep the old PostgreSQL database and MariaDB rollback dump until acceptance.
+   Keep the old PostgreSQL database until acceptance. If an older MariaDB restore
+   is required, select a historic snapshot that still contains `latest.sql`.
 3. Create the target from `template0` with the intended FHEM role as owner.
 4. Restore with `pg_restore --exit-on-error`. For controlled ownership, use
    `--no-owner --no-privileges --role=<FHEM role>` and then explicitly apply and
@@ -92,7 +94,4 @@ explicit approval. Never use `fhem` as the target of the test commands.
 5. Verify tables, exact history-row counts, recent timestamps, sequences and
    extensions. Then check `LoggingDB_PG` connectivity and FHEM read/write access.
 
-MariaDB may be removed only after the agreed rollback period, multiple successful
-PostgreSQL snapshots, a documented restore test, verified FHEM access and
-explicit operational approval. Existing snapshots remain under the unchanged
-Restic retention; this migration deletes none manually.
+This procedure does not delete any local dump, database, or Restic snapshot.
