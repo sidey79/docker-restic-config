@@ -13,7 +13,13 @@ MOCK
 cat > "${test_dir}/bin/docker" <<'MOCK'
 #!/bin/sh
 case "$*" in
-  *pg_dump*) printf 'PGDMP-test-archive\n' ;;
+  *pg_dump*)
+    if [ "${MOCK_PG_DUMP_FAILURE:-0}" = "1" ]; then
+      printf 'partial dump\n'
+      exit 1
+    fi
+    printf 'PGDMP-test-archive\n'
+    ;;
   *pg_restore*--list*) cat >/dev/null ;;
   *) echo "Unexpected docker invocation: $*" >&2; exit 64 ;;
 esac
@@ -54,5 +60,23 @@ set -e
 test "${status}" -eq 75
 test ! -e "${test_dir}/output/timeout.dump"
 grep -F "Timed out waiting for FHEM readiness" "${test_dir}/output/timeout.log" >/dev/null
+
+stale_tmp="${test_dir}/output/failure.dump.tmp.stale"
+printf 'stale partial dump\n' >"${stale_tmp}"
+set +e
+env ${common_env} \
+  FHEM_BACKUP_WAIT_TIMEOUT=5 \
+  FHEM_PG_DUMP_FILE="${test_dir}/output/failure.dump" \
+  MOCK_PG_DUMP_FAILURE=1 \
+  MOCK_FHEM_STATUS="none|${today} 00:16:01|off|ok|${today} 00:32:00|ok" \
+  "${repo_dir}/scripts/restic-fhem-pre-backup.sh" >"${test_dir}/output/failure.log" 2>&1
+status=$?
+set -e
+
+test "${status}" -eq 74
+test ! -e "${stale_tmp}"
+test -z "$(find "${test_dir}/output" -maxdepth 1 -type f -name 'failure.dump.tmp.*' -print -quit)"
+test ! -e "${test_dir}/output/failure.dump"
+grep -F "removing incomplete temporary file" "${test_dir}/output/failure.log" >/dev/null
 
 echo "restic-fhem-pre-backup tests passed"
