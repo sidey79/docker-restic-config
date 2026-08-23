@@ -43,7 +43,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.27.12.88/30
+        - subnet: 172.27.12.88/28
           gateway: 172.27.12.89
   backend_net:
     external: true
