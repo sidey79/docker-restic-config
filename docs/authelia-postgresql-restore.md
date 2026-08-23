@@ -16,7 +16,7 @@ The resulting dump can be inspected with the matching PostgreSQL client:
 
 ```sh
 dump=/opt/docker/restic/restore/authelia-SNAPSHOT_ID/source/2/authelia/postgres/latest.dump
-docker exec -i postgres-authelia pg_restore --list < "${dump}"
+docker exec -i authelia-postgresql-1 pg_restore --list < "${dump}"
 ```
 
 Restore into a newly named database first, validate Authelia, and only then
