@@ -37,8 +37,10 @@ written to `/etc/docker-restic-config/systemd.env`; the default webhook URL is
 `secrets.env` as root-only placeholder if it does not exist.
 
 Service-specific job files set their own repository target. Current jobs are
-`bitwarden`, `ecodms`, `etc`, `fhem`, `n8n`, `paperless`, `pictures`,
-`portainer`, `wordpress` and `z2m`. Paperless is configured in
+`authelia`, `bitwarden`, `ecodms`, `etc`, `fhem`, `n8n`, `paperless`,
+`pictures`, `portainer`, `rootca`, `wordpress` and `z2m`. The Root-CA job
+backs up /opt/docker/rootca, including its private keys, to its own
+repository. Paperless is configured in
 `jobs/paperless.env` and additionally defines host-side pre/post commands.
 
 `RESTIC_SSH_DIR` is configured in the stack environment and mounted read-only to
