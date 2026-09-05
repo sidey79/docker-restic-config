@@ -37,10 +37,10 @@ written to `/etc/docker-restic-config/systemd.env`; the default webhook URL is
 `secrets.env` as root-only placeholder if it does not exist.
 
 Service-specific job files set their own repository target. Current jobs are
-`authelia`, `bitwarden`, `ecodms`, `etc`, `fhem`, `n8n`, `paperless`,
-`pictures`, `portainer`, `rootca`, `wordpress` and `z2m`. The Root-CA job
-backs up /opt/docker/rootca, including its private keys, to its own
-repository. Paperless is configured in
+`ansible-docker`, `authelia`, `bitwarden`, `brain-mcp-lake`, `ecodms`, `etc`,
+`fhem`, `n8n`, `paperless`, `pictures`, `portainer`, `rootca`, `wordpress` and
+`z2m`. The Root-CA job backs up /opt/docker/rootca, including its private keys,
+to its own repository. Paperless is configured in
 `jobs/paperless.env` and additionally defines host-side pre/post commands.
 
 `RESTIC_SSH_DIR` is configured in the stack environment and mounted read-only to
@@ -264,6 +264,21 @@ The z2m job backs up the live Zigbee2MQTT data directory
 `configuration.yaml`, `coordinator_backup.json`, `database.db`, `state.json`,
 device icons and logs. The Zigbee network key is covered by the backup because
 it is stored in `configuration.yaml` and also present in the coordinator backup.
+
+The ansible-docker job backs up the complete Ansible checkout
+`/home/sven/git_repos/ansible-docker`, including its `.git` directory. The job
+exists because that working copy holds files that are deliberately not committed
+but are required to run Ansible: `.vault_pass`, the private key
+`keys/ansible_ed25519`, and untracked host variables such as
+`inventory/host_vars/pi3/main.yml`. Backing up the whole directory instead of
+selected paths also covers files that become ignored or untracked later, and
+keeps a copy of the repository history independent of the GitHub remote.
+
+Restoring this job alone is not enough to regain access: the snapshot contains
+the Ansible vault password and SSH key, but the repository itself is encrypted
+with `RESTIC_PASSWORD` from `/etc/docker-restic-config/secrets.env`, which is
+only backed up by the `etc` job under the same password. Keep an offline copy of
+`RESTIC_PASSWORD` outside this host.
 
 If `N8N_BACKUP_WEBHOOK_URL` is set, the orchestrator sends JSON `started`,
 `success` and `failure` events to n8n. Notification delivery failures are logged
