@@ -7,7 +7,8 @@ if [ -z "${job_name}" ]; then
   exit 64
 fi
 
-job_dir="${JOB_DIR:-./jobs}"
+repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+job_dir="${JOB_DIR:-${repo_dir}/jobs}"
 job_file="${job_dir}/${job_name}.env"
 if [ ! -r "${job_file}" ]; then
   echo "Job file not found or not readable: ${job_file}" >&2
