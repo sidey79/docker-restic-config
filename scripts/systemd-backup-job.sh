@@ -35,10 +35,11 @@ set +a
 
 : "${RESTIC_CONTAINER_BACKUP_SOURCE_1:?RESTIC_CONTAINER_BACKUP_SOURCE_1 must be set in ${job_file}}"
 
-# Pass the resolved job directory on, so the helpers do not depend on the
-# working directory either.
+# Pass the resolved job and repository directories on, so the helpers and the
+# hook commands from the job file do not depend on the working directory either.
 JOB_DIR="${job_dir}"
-export JOB_DIR
+REPO_DIR="${repo_dir}"
+export JOB_DIR REPO_DIR
 
 status=0
 post_status=0

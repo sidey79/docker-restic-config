@@ -198,6 +198,18 @@ command, then the Restic container, then the post-backup command. The post-backu
 command is also attempted when the pre-backup command or Restic fails, so stopped
 applications can be started again.
 
+Hook commands that call a script from this repository must address it through
+`${REPO_DIR}`, which the orchestrator exports as the absolute path of the stack
+checkout:
+
+```sh
+PRE_BACKUP_COMMAND='"${REPO_DIR}/scripts/restic-fhem-pre-backup.sh"'
+```
+
+A relative `./scripts/...` path does not work. The systemd service runs with `/`
+as its working directory, so such a hook fails with status 127 and the job skips
+its Restic phase entirely.
+
 Generic systemd job flow:
 
 ```text

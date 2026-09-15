@@ -26,5 +26,10 @@ if [ -z "${post_backup_command}" ]; then
   exit 0
 fi
 
+# See pre-backup-job.sh: hook commands reach repository scripts through
+# ${REPO_DIR}, never through a relative path.
+REPO_DIR="${repo_dir}"
+export REPO_DIR
+
 echo "==> Running post-backup command for ${job_name}"
 sh -eu -c "${post_backup_command}"

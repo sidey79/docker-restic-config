@@ -63,6 +63,22 @@ RESTIC_CONTAINER_BACKUP_SOURCE_1=/srv/demo
 PRE_BACKUP_COMMAND='echo "demo pre-backup"; touch "${MARKER_DIR}/pre"; exit "${MOCK_PRE_STATUS:-0}"'
 POST_BACKUP_COMMAND='echo "demo post-backup"; touch "${MARKER_DIR}/post"'
 JOB
+
+  # A job whose hooks call repository scripts, like fhem, authelia and
+  # portainer do.
+  cat > "${test_dir}/stack/scripts/demo-hook.sh" <<'HOOK'
+#!/bin/sh
+set -eu
+echo "demo hook script ran"
+touch "${MARKER_DIR}/${1}"
+HOOK
+  chmod 0755 "${test_dir}/stack/scripts/demo-hook.sh"
+
+  cat > "${test_dir}/stack/jobs/hook.env" <<'JOB'
+RESTIC_CONTAINER_BACKUP_SOURCE_1=/srv/demo
+PRE_BACKUP_COMMAND='"${REPO_DIR}/scripts/demo-hook.sh" pre'
+POST_BACKUP_COMMAND='"${REPO_DIR}/scripts/demo-hook.sh" post'
+JOB
 }
 
 common_env="PATH=${test_dir}/bin:${PATH} \
@@ -76,6 +92,7 @@ BACKUP_WEBHOOK_URL="
 
 case_name=""
 job_status=0
+test_job="demo"
 
 run_job() {
   case_name="$1"
@@ -84,7 +101,7 @@ run_job() {
 
   set +e
   env ${common_env} "$@" \
-    "${test_dir}/stack/scripts/systemd-backup-job.sh" demo \
+    "${test_dir}/stack/scripts/systemd-backup-job.sh" "${test_job}" \
     >"${test_dir}/output/${case_name}.log" 2>&1
   job_status=$?
   set -e
@@ -103,7 +120,7 @@ run_job_without_working_directory() {
     cd "${test_dir}/gone" \
       && rmdir "${test_dir}/gone" \
       && exec env ${common_env} "$@" \
-        "${test_dir}/stack/scripts/systemd-backup-job.sh" demo
+        "${test_dir}/stack/scripts/systemd-backup-job.sh" "${test_job}"
   ) >"${test_dir}/output/${case_name}.log" 2>&1
   job_status=$?
   set -e
@@ -173,6 +190,25 @@ assert_status 70
 assert_marker pre
 assert_marker post
 assert_log "Skipping Restic backup for demo because pre-backup failed with status 70"
+
+# Hooks that call a script from this repository must work through ${REPO_DIR},
+# in a plain run as well as in one whose working directory is gone. A relative
+# ./scripts/... path failed here with status 127, because the systemd service
+# runs with / as its working directory.
+test_job="hook"
+
+run_job hook-command
+assert_status 0
+assert_marker pre
+assert_marker post
+assert_log "demo hook script ran"
+
+run_job_without_working_directory hook-command-without-working-directory
+assert_status 0
+assert_marker pre
+assert_marker post
+
+test_job="demo"
 
 # A job without a post-backup command must not be reported as failed.
 setup_stack

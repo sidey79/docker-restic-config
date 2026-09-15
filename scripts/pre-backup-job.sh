@@ -26,5 +26,11 @@ if [ -z "${pre_backup_command}" ]; then
   exit 0
 fi
 
+# Hook commands that call a script from this repository must address it through
+# ${REPO_DIR}. The systemd service runs with / as its working directory, so a
+# relative ./scripts/... path in a job file fails with status 127.
+REPO_DIR="${repo_dir}"
+export REPO_DIR
+
 echo "==> Running pre-backup command for ${job_name}"
 sh -eu -c "${pre_backup_command}"
