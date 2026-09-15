@@ -15,6 +15,11 @@ if [ ! -r "${job_file}" ]; then
   exit 66
 fi
 
+# See pre-backup-job.sh: hook commands reach repository scripts through
+# ${REPO_DIR}, and the export happens before the job file is read.
+REPO_DIR="${repo_dir}"
+export REPO_DIR
+
 set -a
 # shellcheck disable=SC1090
 . "${job_file}"

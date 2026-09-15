@@ -15,6 +15,14 @@ if [ ! -r "${job_file}" ]; then
   exit 66
 fi
 
+# Hook commands that call a script from this repository must address it through
+# ${REPO_DIR}. The systemd service runs with / as its working directory, so a
+# relative ./scripts/... path in a job file fails with status 127. The export
+# happens before the job file is read, because a hook written with double quotes
+# expands the variable at source time and would abort under set -u.
+REPO_DIR="${repo_dir}"
+export REPO_DIR
+
 set -a
 # shellcheck disable=SC1090
 . "${job_file}"

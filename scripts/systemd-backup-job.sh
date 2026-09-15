@@ -28,6 +28,13 @@ if [ ! -r "${job_file}" ]; then
   exit 66
 fi
 
+# Exported before the job file is read: a hook command written with double
+# quotes expands ${REPO_DIR} at source time, and under set -u an unset variable
+# would abort the run before the traps and the started notification are in
+# place.
+REPO_DIR="${repo_dir}"
+export REPO_DIR
+
 set -a
 # shellcheck disable=SC1090
 . "${job_file}"
@@ -61,6 +68,9 @@ run_post_backup() {
   elif [ -n "${POST_BACKUP_COMMAND:-}" ]; then
     # Last resort when the stack directory disappeared mid-run: the command was
     # already sourced from the job file, so it can run without touching disk.
+    # This only holds for an inline command. A POST_BACKUP_COMMAND that calls a
+    # script through ${REPO_DIR} is gone along with the stack directory, which
+    # is why jobs keep their container restart inline.
     echo "==> post-backup-job.sh is unavailable, running POST_BACKUP_COMMAND for ${job_name} directly" >&2
     sh -eu -c "${POST_BACKUP_COMMAND}" || post_status=$?
   else
