@@ -81,6 +81,14 @@ RESTIC_CONTAINER_BACKUP_SOURCE_1=/srv/demo
 PRE_BACKUP_COMMAND='"${REPO_DIR}/scripts/demo-hook.sh" pre'
 POST_BACKUP_COMMAND='echo "hook post-backup"; touch "${MARKER_DIR}/post"'
 JOB
+
+  # The same hook written with double quotes, which expands ${REPO_DIR} while
+  # the job file is sourced instead of when the command runs.
+  cat > "${test_dir}/stack/jobs/quoted-hook.env" <<'JOB'
+RESTIC_CONTAINER_BACKUP_SOURCE_1=/srv/demo
+PRE_BACKUP_COMMAND="${REPO_DIR}/scripts/demo-hook.sh pre"
+POST_BACKUP_COMMAND='echo "quoted hook post-backup"; touch "${MARKER_DIR}/post"'
+JOB
 }
 
 common_env="PATH=${test_dir}/bin:${PATH} \
@@ -224,6 +232,18 @@ run_job hook-command-terminated MOCK_DOCKER_MODE=terminate
 assert_status 143
 assert_marker pre
 assert_marker post
+
+# ${REPO_DIR} has to be exported before the job file is sourced. A hook written
+# with double quotes expands it at source time, so an export that happens later
+# would abort the run under set -u, before the traps and the started
+# notification exist.
+test_job="quoted-hook"
+
+run_job quoted-hook-command
+assert_status 0
+assert_marker pre
+assert_marker post
+assert_log "demo hook script ran"
 
 test_job="demo"
 

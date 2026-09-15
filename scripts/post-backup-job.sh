@@ -15,6 +15,11 @@ if [ ! -r "${job_file}" ]; then
   exit 66
 fi
 
+# See pre-backup-job.sh: hook commands reach repository scripts through
+# ${REPO_DIR}, and the export happens before the job file is read.
+REPO_DIR="${repo_dir}"
+export REPO_DIR
+
 set -a
 # shellcheck disable=SC1090
 . "${job_file}"
@@ -25,11 +30,6 @@ if [ -z "${post_backup_command}" ]; then
   echo "==> No post-backup command configured for ${job_name}"
   exit 0
 fi
-
-# See pre-backup-job.sh: hook commands reach repository scripts through
-# ${REPO_DIR}, never through a relative path.
-REPO_DIR="${repo_dir}"
-export REPO_DIR
 
 echo "==> Running post-backup command for ${job_name}"
 sh -eu -c "${post_backup_command}"

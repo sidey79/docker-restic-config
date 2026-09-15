@@ -14,7 +14,15 @@ including its own repository, tag and timer, and is started with
 - `jobs/*.env`: per-job repository, source and retention settings
 - `systemd/`: central systemd service and timer template
 - `.env.example`: source paths, repository target and retention settings
+- `tests/`: shell tests for the orchestrator and the pre-backup hooks
 - `renovate.json`: dependency update configuration
+
+The tests mock `docker` and `curl` through `PATH` and need no running stack. The
+`shell-tests` CI job runs them on every pull request; run them locally with:
+
+```sh
+for test in tests/*.sh; do sh "${test}"; done
+```
 
 ## Setup
 
