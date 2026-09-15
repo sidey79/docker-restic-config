@@ -64,8 +64,10 @@ PRE_BACKUP_COMMAND='echo "demo pre-backup"; touch "${MARKER_DIR}/pre"; exit "${M
 POST_BACKUP_COMMAND='echo "demo post-backup"; touch "${MARKER_DIR}/post"'
 JOB
 
-  # A job whose hooks call repository scripts, like fhem, authelia and
-  # portainer do.
+  # A job whose pre-backup hook calls a repository script, like fhem, authelia
+  # and portainer do. Its post-backup command stays inline on purpose: a
+  # redeploy can remove the scripts mid-run, and the phase that starts stopped
+  # containers again has to survive that.
   cat > "${test_dir}/stack/scripts/demo-hook.sh" <<'HOOK'
 #!/bin/sh
 set -eu
@@ -77,7 +79,7 @@ HOOK
   cat > "${test_dir}/stack/jobs/hook.env" <<'JOB'
 RESTIC_CONTAINER_BACKUP_SOURCE_1=/srv/demo
 PRE_BACKUP_COMMAND='"${REPO_DIR}/scripts/demo-hook.sh" pre'
-POST_BACKUP_COMMAND='"${REPO_DIR}/scripts/demo-hook.sh" post'
+POST_BACKUP_COMMAND='echo "hook post-backup"; touch "${MARKER_DIR}/post"'
 JOB
 }
 
@@ -205,6 +207,21 @@ assert_log "demo hook script ran"
 
 run_job_without_working_directory hook-command-without-working-directory
 assert_status 0
+assert_marker pre
+assert_marker post
+
+# The pre-backup hook script is gone together with the helpers once a redeploy
+# removes the stack scripts. The inline post-backup command must still run, so
+# the fallback stays usable for exactly the jobs that stop containers.
+run_job hook-command-removed-scripts MOCK_DOCKER_MODE=remove-scripts
+assert_status 0
+assert_marker pre
+assert_marker post
+assert_log "post-backup-job.sh is unavailable, running POST_BACKUP_COMMAND for hook directly"
+
+# Same for systemd stopping the unit mid-run.
+run_job hook-command-terminated MOCK_DOCKER_MODE=terminate
+assert_status 143
 assert_marker pre
 assert_marker post
 

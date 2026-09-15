@@ -210,6 +210,14 @@ A relative `./scripts/...` path does not work. The systemd service runs with `/`
 as its working directory, so such a hook fails with status 127 and the job skips
 its Restic phase entirely.
 
+`POST_BACKUP_COMMAND` is the exception: keep it inline, as `bitwarden`,
+`paperless` and `authelia` do. If a redeploy replaces the stack directory while
+the job runs, the orchestrator falls back to running the post-backup command
+itself from the already sourced job file. That fallback works for an inline
+command, but not for a script under `${REPO_DIR}`, which the redeploy removed
+along with the helpers. Containers stopped by the pre-backup phase would then
+stay down.
+
 Generic systemd job flow:
 
 ```text
