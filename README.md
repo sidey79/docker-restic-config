@@ -202,6 +202,11 @@ repository directory if the disk still allows it. Then:
 job=n8n
 sudo systemctl stop "restic-backup@${job}.timer"
 
+# 0. Optional: verify single packs that are already suspected. Read-only and
+#    downloads only these packs. An intact pack does not prove that the rest
+#    of the repository is intact.
+sudo ./scripts/restic-repo-repair.sh "${job}" check-pack <pack-id> [<pack-id>...]
+
 # 1. Find the damaged packs. Read-only.
 sudo ./scripts/restic-repo-repair.sh "${job}" check
 

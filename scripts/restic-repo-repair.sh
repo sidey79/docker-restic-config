@@ -19,6 +19,7 @@ Usage: $0 <job-name> <step> [arguments]
 
 Steps, in the order a repair uses them:
   snapshots                 List the snapshots (connection and password test)
+  check-pack <id>...        Download only the given packs and verify their hash
   check                     Read and verify every pack (restic check --read-data)
   repair-packs <id>...      Salvage the readable blobs of the given damaged packs
   backup-force              Re-read all source files and upload missing blobs
@@ -104,7 +105,7 @@ case "${step}" in
     [ "$#" -eq 0 ] || usage
     container_script="${container_prelude}; exec restic check --read-data"
     ;;
-  repair-packs)
+  check-pack|repair-packs)
     [ "$#" -ge 1 ] || usage
     for pack_id in "$@"; do
       case "${pack_id}" in
@@ -118,7 +119,13 @@ case "${step}" in
         exit 64
       fi
     done
-    container_script="${container_prelude}; exec restic repair packs \"\$@\""
+    if [ "${step}" = "check-pack" ]; then
+      # The ID of a pack is the SHA-256 hash of its content, so a truncated or
+      # altered file shows up without reading the rest of the repository.
+      container_script="${container_prelude}"'; rc=0; for id in "$@"; do actual="$(restic cat pack "$id" | sha256sum | cut -d" " -f1)"; if [ "$actual" = "$id" ]; then echo "OK      $id"; else echo "DAMAGED $id (content hash: $actual)"; rc=1; fi; done; exit "$rc"'
+    else
+      container_script="${container_prelude}; exec restic repair packs \"\$@\""
+    fi
     ;;
   backup-force)
     [ "$#" -eq 0 ] || usage

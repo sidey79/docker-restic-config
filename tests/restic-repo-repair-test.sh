@@ -36,7 +36,11 @@ cat > "${test_dir}/container/bin/restic" <<'MOCK'
   echo "repository=${RESTIC_REPOSITORY:-} cache=${RESTIC_CACHE_DIR:-}"
   for arg in "$@"; do echo "arg=${arg}"; done
 } > "${MOCK_RESTIC_LOG:?}"
-echo "mock restic $*"
+if [ "${1:-} ${2:-}" = "cat pack" ]; then
+  printf '%s' "${MOCK_PACK_CONTENT:-}"
+else
+  echo "mock restic $*"
+fi
 exit "${MOCK_RESTIC_STATUS:-0}"
 MOCK
 chmod 0755 "${test_dir}/container/bin/restic"
@@ -74,6 +78,7 @@ run_repair() {
     MOCK_JOBS_DIR="${test_dir}/stack/jobs" \
     MOCK_CONTAINER_BIN="${test_dir}/container/bin" \
     MOCK_RESTIC_STATUS="${MOCK_RESTIC_STATUS:-0}" \
+    MOCK_PACK_CONTENT="${MOCK_PACK_CONTENT:-}" \
     "${repo_dir}/scripts/restic-repo-repair.sh" "$@" \
     >"${test_dir}/${case_name}.out" 2>&1
   status=$?
@@ -122,6 +127,24 @@ grep -q 'step=check finished with exit status 0' "${test_dir}/output/demo-repair
 run_repair snapshots demo snapshots
 expect_status 0
 expect_restic "snapshots"
+
+# The ID of a pack is the hash of its content.
+MOCK_PACK_CONTENT="intact pack"
+intact_id="$(printf '%s' "${MOCK_PACK_CONTENT}" | sha256sum | cut -d' ' -f1)"
+run_repair check-pack-intact demo check-pack "${intact_id}"
+expect_status 0
+expect_restic "cat pack ${intact_id}"
+grep -q "^OK      ${intact_id}$" "${test_dir}/${case_name}.out" || fail "intact pack not reported as OK"
+
+MOCK_PACK_CONTENT="intact pa"
+run_repair check-pack-truncated demo check-pack "${intact_id}"
+expect_status 1
+grep -q "^DAMAGED ${intact_id} " "${test_dir}/${case_name}.out" || fail "truncated pack not reported as DAMAGED"
+if grep -q "intact pa" "${test_dir}/output/demo-repair.log"; then fail "pack content written to the log"; fi
+
+run_repair check-pack-invalid-id demo check-pack "96b4336c"
+expect_status 64
+expect_no_docker
 
 run_repair repair-packs demo repair-packs "${pack_id}"
 expect_status 0
