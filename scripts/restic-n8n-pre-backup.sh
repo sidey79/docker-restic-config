@@ -11,21 +11,42 @@ key_file="${N8N_KEY_FILE-}"
 n8n_container="${N8N_CONTAINER:-}"
 n8n_config_file="${N8N_CONFIG_FILE:-/home/node/.n8n/config}"
 
-tmp_files=""
+key_tmp=""
+dump_tmp=""
 cleanup_tmp_files() {
-  for tmp_file in ${tmp_files}; do
-    rm -f -- "${tmp_file}"
-  done
+  if [ -n "${key_tmp}" ]; then
+    rm -f -- "${key_tmp}"
+  fi
+  if [ -n "${dump_tmp}" ]; then
+    rm -f -- "${dump_tmp}"
+  fi
 }
-trap cleanup_tmp_files EXIT HUP INT TERM
+# A trap handler for a signal returns to the interrupted script, so the signal
+# traps must exit explicitly. The EXIT trap then removes the temporary files.
+trap cleanup_tmp_files EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
-# Sets ${new_tmp} (no command substitution, so the cleanup trap sees the file).
-new_tmp_file() {
-  target="$1"
-  mkdir -p "$(dirname "${target}")"
-  find "$(dirname "${target}")" -maxdepth 1 -type f -name "$(basename "${target}").tmp.*" -delete
-  new_tmp="$(mktemp "${target}.tmp.XXXXXX")"
-  tmp_files="${tmp_files} ${new_tmp}"
+# Only one run may use the temporary files at a time: a second run would
+# delete the first run's in-progress file as "stale".
+lock_file="${N8N_LOCK_FILE:-/run/lock/restic-n8n-pre-backup.lock}"
+if [ ! -d "$(dirname "${lock_file}")" ]; then
+  lock_file="${TMPDIR:-/tmp}/restic-n8n-pre-backup.lock"
+fi
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"${lock_file}"
+  if ! flock -n 9; then
+    echo "Another n8n pre-backup run holds ${lock_file}; aborting" >&2
+    exit 75
+  fi
+else
+  echo "==> WARNING: flock not found; running without a lock" >&2
+fi
+
+# Removes leftovers of an earlier killed run next to ${1}.
+remove_stale_tmp_files() {
+  find "$(dirname "${1}")" -maxdepth 1 -type f -name "$(basename "${1}").tmp.*" -delete
 }
 
 if [ -n "${key_file}" ]; then
@@ -43,19 +64,27 @@ if [ -n "${key_file}" ]; then
     exit 78
   fi
 
-  new_tmp_file "${key_file}"
-  key_tmp="${new_tmp}"
+  key_dir="$(dirname "${key_file}")"
+  mkdir -p "${key_dir}"
+  # The key decrypts the credentials in the dump: keep its directory closed to
+  # other users, like the key file itself (0600).
+  chmod "${N8N_KEY_DIR_MODE:-0750}" "${key_dir}"
+  remove_stale_tmp_files "${key_file}"
+  key_tmp="$(mktemp "${key_file}.tmp.XXXXXX")"
   printf 'N8N_ENCRYPTION_KEY=%s\n' "${key_value}" > "${key_tmp}"
   chmod 0600 "${key_tmp}"
   mv "${key_tmp}" "${key_file}"
+  key_tmp=""
   echo "==> n8n encryption key saved: ${key_file}"
 fi
 
-new_tmp_file "${pg_dump_file}"
-dump_tmp="${new_tmp}"
+dump_dir="$(dirname "${pg_dump_file}")"
+mkdir -p "${dump_dir}"
 # The dump contains workflows, credentials and execution data: keep the
 # directory closed to other users, like the dump file itself (0640).
-chmod "${N8N_PG_DUMP_DIR_MODE:-0750}" "$(dirname "${pg_dump_file}")"
+chmod "${N8N_PG_DUMP_DIR_MODE:-0750}" "${dump_dir}"
+remove_stale_tmp_files "${pg_dump_file}"
+dump_tmp="$(mktemp "${pg_dump_file}.tmp.XXXXXX")"
 
 echo "==> Creating n8n PostgreSQL plain SQL dump from ${pg_container}: ${pg_dump_file}"
 if ! docker exec -e N8N_PG_DB="${pg_db_name}" "${pg_container}" \
@@ -84,4 +113,5 @@ fi
 
 chmod 0640 "${dump_tmp}"
 mv "${dump_tmp}" "${pg_dump_file}"
+dump_tmp=""
 echo "==> n8n PostgreSQL dump ready: ${pg_dump_file}"
