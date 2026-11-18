@@ -58,7 +58,29 @@ for `tiffy` on port `2222` with user `sbackupftp` and key
 the stack pins the ED25519 host key through `/etc/restic/known_hosts` with
 `StrictHostKeyChecking yes`.
 
-Run one backup manually:
+### Run a job manually
+
+Portainer injects `RESTIC_PASSWORD` and the runtime paths only into the stack it
+deploys. A `docker compose run` from a shell on the host does not see them, so
+the Restic container starts without a repository password and the repository
+cannot be opened. Prepare the shell once (bash); the password is read without
+echo and stays out of the shell history:
+
+```sh
+cd /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config
+
+read -r -s -p 'RESTIC_PASSWORD: ' RESTIC_PASSWORD; echo
+export RESTIC_PASSWORD
+export RESTIC_CACHE_DIR="${RESTIC_CACHE_DIR:-/opt/docker/restic/cache}"
+export RESTIC_RESTORE_DIR="${RESTIC_RESTORE_DIR:-/opt/docker/restic/restore}"
+```
+
+Copy the password from the stack environment in Portainer. Adjust the two
+directories if the stack environment sets other values; they are the defaults
+from `.env.example`. The remaining variables have defaults in
+`docker-compose.yml`. The variables exist only in this shell session.
+
+Run only the Restic part of one backup (retention and check included):
 
 ```sh
 set -a
@@ -67,7 +89,26 @@ set +a
 docker compose run --rm restic-job /scripts/restic-job.sh paperless
 ```
 
-List snapshots for a specific repository:
+This does not run the host-side hooks of the job. `PRE_BACKUP_COMMAND` (for
+example database dumps, the Portainer API backup or stopping a container) and
+`POST_BACKUP_COMMAND` (for example restarting it) are executed by
+`scripts/systemd-backup-job.sh`, not by the container. Run on its own, the
+command above backs up whatever dump file is already there, which may be old.
+To test a job exactly as the timer runs it, including the hooks and the
+notification, start the service:
+
+```sh
+sudo systemctl start restic-backup@paperless.service
+journalctl -u restic-backup@paperless.service -f
+```
+
+The service reads `RESTIC_PASSWORD` from `/etc/docker-restic-config/secrets.env`
+(see above), not from Portainer. If the password exists only in Portainer, the
+timers fail for the same reason as the manual command: add the same value to
+that file once (`sudoedit /etc/docker-restic-config/secrets.env`, line
+`RESTIC_PASSWORD=...`, file mode 0600).
+
+List snapshots for a specific repository (shell prepared as above):
 
 ```sh
 set -a
@@ -76,7 +117,7 @@ set +a
 docker compose run --rm restic-job -c '. /jobs/paperless.env && export RESTIC_REPOSITORY RESTIC_CACHE_DIR=/cache && restic snapshots'
 ```
 
-Restore into the configured restore directory:
+Restore into the configured restore directory (shell prepared as above):
 
 ```sh
 set -a
