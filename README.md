@@ -11,6 +11,7 @@ including its own repository, tag and timer, and is started with
 
 - `docker-compose.yml`: central Restic service
 - `scripts/restic-job.sh`: generic backup, retention and check workflow
+- `scripts/restic-repo-repair.sh`: check and repair the repository of one job
 - `jobs/*.env`: per-job repository, source and retention settings
 - `systemd/`: central systemd service and timer template
 - `.env.example`: source paths, repository target and retention settings
@@ -249,6 +250,60 @@ Verify the final state:
 systemctl list-timers 'restic-backup@*.timer'
 systemctl status restic-backup@paperless.timer
 ```
+
+## Repairing a damaged repository
+
+The scheduled job ends with `restic check`, which verifies the repository
+structure but does not read the pack files back. A pack that was truncated or
+corrupted on the remote disk is only found by `restic check --read-data`.
+
+`scripts/restic-repo-repair.sh <job> <step>` runs the commands for such a case
+through the same Compose service as the scheduled backup. It reads the stack
+location and `RESTIC_PASSWORD` from `/etc/docker-restic-config/`, so it has to
+run as root. Every run is appended to `${RESTIC_OUTPUT_DIR}/<job>-repair.log`.
+
+Fix the storage problem on the remote host first, and keep a copy of the
+repository directory if the disk still allows it. Then:
+
+```sh
+job=n8n
+sudo systemctl stop "restic-backup@${job}.timer"
+
+# 0. Optional: verify single packs that are already suspected. Read-only and
+#    downloads only these packs. An intact pack does not prove that the rest
+#    of the repository is intact.
+sudo ./scripts/restic-repo-repair.sh "${job}" check-pack <pack-id> [<pack-id>...]
+
+# 1. Find the damaged packs. Read-only.
+sudo ./scripts/restic-repo-repair.sh "${job}" check
+
+# 2. Salvage the readable blobs of the packs that step 1 reported.
+sudo ./scripts/restic-repo-repair.sh "${job}" repair-packs <pack-id> [<pack-id>...]
+
+# 3. Re-read all source files, so blobs that still exist on this host are
+#    uploaded again.
+sudo ./scripts/restic-repo-repair.sh "${job}" backup-force
+
+# 4. Verify. If this reports no errors, the repair is complete.
+sudo ./scripts/restic-repo-repair.sh "${job}" check
+
+# 5. Only if step 4 still reports missing blobs: old snapshots reference data
+#    that no longer exists anywhere. Review, then drop those files from the
+#    affected snapshots and check again.
+sudo ./scripts/restic-repo-repair.sh "${job}" repair-snapshots-dry-run
+sudo ./scripts/restic-repo-repair.sh "${job}" repair-snapshots
+sudo ./scripts/restic-repo-repair.sh "${job}" prune
+sudo ./scripts/restic-repo-repair.sh "${job}" check
+
+sudo systemctl start "restic-backup@${job}.timer"
+```
+
+`repair-packs` does not restore anything from the source data by itself. It
+removes the damaged pack from the index and keeps what was still readable; the
+missing blobs come back with `backup-force`, as far as the source files still
+have the same content. Any other restic command can be run against the job's
+repository with `restic-repo-repair.sh <job> restic <args>`, for example
+`restic unlock` after an interrupted run.
 
 ## Data source policy
 
