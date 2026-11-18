@@ -58,7 +58,57 @@ for `tiffy` on port `2222` with user `sbackupftp` and key
 the stack pins the ED25519 host key through `/etc/restic/known_hosts` with
 `StrictHostKeyChecking yes`.
 
-Run one backup manually:
+### Run a job manually
+
+Portainer injects `RESTIC_PASSWORD` and the runtime paths only into the stack it
+deploys. A `docker compose run` from a shell on the host does not see them, so
+the Restic container starts without a repository password and the repository
+cannot be opened.
+
+On the host the password comes from `/etc/docker-restic-config/secrets.env`.
+The systemd timers read the same file (see above), so it is also the right
+place for manual runs. If the password exists only in Portainer, add the same
+value there once (the installer creates the file as a root-only placeholder
+with mode 0600):
+
+```sh
+sudoedit /etc/docker-restic-config/secrets.env   # line: RESTIC_PASSWORD=...
+```
+
+Prepare a root shell that loads the host configuration (bash). The file is
+readable by root only, so a normal shell cannot source it:
+
+```sh
+sudo -s
+cd /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config
+
+set -a
+. /etc/docker-restic-config/systemd.env
+. /etc/docker-restic-config/secrets.env
+: "${RESTIC_CACHE_DIR:=/opt/docker/restic/cache}"
+: "${RESTIC_RESTORE_DIR:=/opt/docker/restic/restore}"
+set +a
+```
+
+`systemd.env` sets `COMPOSE_FILE`, `COMPOSE_PROJECT_NAME` and the output
+directory as for the timers. The two directories are not part of
+`systemd.env`; the defaults are those from `.env.example`, so adjust them if the
+stack environment sets other values. The remaining variables have defaults in
+`docker-compose.yml`. The variables, including the password, exist only in this
+shell; leave it with `exit` when you are done.
+
+If you do not want the password on disk, skip `secrets.env`: omit that line and
+type the password instead (copy it from the stack environment in Portainer).
+It is read without echo and stays out of the shell history:
+
+```sh
+read -r -s -p 'RESTIC_PASSWORD: ' RESTIC_PASSWORD; echo
+export RESTIC_PASSWORD
+```
+
+Note that the systemd timers still need the password in `secrets.env`.
+
+Run only the Restic part of one backup (retention and check included):
 
 ```sh
 set -a
@@ -67,7 +117,24 @@ set +a
 docker compose run --rm restic-job /scripts/restic-job.sh paperless
 ```
 
-List snapshots for a specific repository:
+This does not run the host-side hooks of the job. `PRE_BACKUP_COMMAND` (for
+example database dumps, the Portainer API backup or stopping a container) and
+`POST_BACKUP_COMMAND` (for example restarting it) are executed by
+`scripts/systemd-backup-job.sh`, not by the container. Run on its own, the
+command above backs up whatever dump file is already there, which may be old.
+To test a job exactly as the timer runs it, including the hooks and the
+notification, start the service:
+
+```sh
+sudo systemctl start restic-backup@paperless.service
+journalctl -u restic-backup@paperless.service -f
+```
+
+The service reads `RESTIC_PASSWORD` from `/etc/docker-restic-config/secrets.env`,
+not from Portainer. If that file does not contain the password, the timers fail
+for the same reason as a manual command without it.
+
+List snapshots for a specific repository (shell prepared as above):
 
 ```sh
 set -a
@@ -76,7 +143,7 @@ set +a
 docker compose run --rm restic-job -c '. /jobs/paperless.env && export RESTIC_REPOSITORY RESTIC_CACHE_DIR=/cache && restic snapshots'
 ```
 
-Restore into the configured restore directory:
+Restore into the configured restore directory (shell prepared as above):
 
 ```sh
 set -a
