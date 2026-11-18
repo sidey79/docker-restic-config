@@ -354,6 +354,43 @@ remain available in older Restic snapshots according to their retention period;
 this change does not delete their local dump file or any existing snapshot.
 See [`docs/fhem-postgresql-restore.md`](docs/fhem-postgresql-restore.md).
 
+The n8n job creates its own PostgreSQL dump before Restic runs. The hook
+`scripts/restic-n8n-pre-backup.sh` writes an uncompressed plain SQL dump of the
+database in `n8n-postgres-1` (`pg_dump --no-owner --no-privileges`) to
+`/srv/backup/zeus/n8n/db/latest.sql`. The dump is written to a temporary
+file, checked for the `PostgreSQL database dump complete` trailer and then
+published atomically with mode 0640; a failed, empty or truncated dump aborts
+the job and leaves the previous `latest.sql` untouched. A stale `latest.sql`
+from the old job is replaced by the first run. The hook also saves
+`N8N_ENCRYPTION_KEY` from `/home/node/.n8n/config` in `n8n-n8n-1` to
+`/srv/backup/zeus/n8n/meta/n8n_encryption_key.env` (mode 0600). Without that key
+the credentials in the dump cannot be decrypted, so a missing key aborts the job
+too; set `N8N_KEY_FILE=` (empty) to skip the key snapshot.
+
+The dump contains workflows, credentials and execution data, and the key
+decrypts those credentials. The hook therefore sets both the `db` and the `meta`
+directory to mode 0750 (override with `N8N_PG_DUMP_DIR_MODE` and
+`N8N_KEY_DIR_MODE`). Dump and key end up in the same Restic repository, so
+whoever can open that repository gets both; keep the repository password and the
+SFTP access to `tiffy` as protected as the n8n credentials themselves. Only one
+hook run may use the temporary files at a time: the hook takes an exclusive
+`flock` on `/run/lock/restic-n8n-pre-backup.lock` (`N8N_LOCK_FILE`) and a second
+run exits with status 75. If the hook receives SIGHUP, SIGINT or SIGTERM it
+removes its temporary files and exits.
+
+The Restic container mounts only `/srv/backup/zeus/n8n` (`/source/1`) and backs
+up `/source/1/db` and `/source/1/meta`, so the uncompressed dump can be
+deduplicated between snapshots and Restic's retention replaces the separate
+rotation. Because the path set differs from the old snapshots (`/source/1`),
+the first run has no parent snapshot and rescans the files; chunks that already
+exist in the repository are not uploaded again. The n8n data volume itself
+(`/home/node/.n8n`) is not part of this job.
+
+This job replaces the former host-side `n8n-docker-pg-backup.sh` systemd job and
+its gzip files under `/srv/backup/zeus/n8n/backups`. After the first successful
+Restic run, disable that systemd timer. Old Restic snapshots keep the `backups/`
+content until their retention expires; the new job no longer backs up `backups/`.
+
 The z2m job backs up the live Zigbee2MQTT data directory
 `/opt/docker/fhem/zigbee2mqtt/data` without stopping the container. This includes
 `configuration.yaml`, `coordinator_backup.json`, `database.db`, `state.json`,
