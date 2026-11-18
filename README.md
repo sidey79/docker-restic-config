@@ -63,22 +63,50 @@ the stack pins the ED25519 host key through `/etc/restic/known_hosts` with
 Portainer injects `RESTIC_PASSWORD` and the runtime paths only into the stack it
 deploys. A `docker compose run` from a shell on the host does not see them, so
 the Restic container starts without a repository password and the repository
-cannot be opened. Prepare the shell once (bash); the password is read without
-echo and stays out of the shell history:
+cannot be opened.
+
+On the host the password comes from `/etc/docker-restic-config/secrets.env`.
+The systemd timers read the same file (see above), so it is also the right
+place for manual runs. If the password exists only in Portainer, add the same
+value there once (the installer creates the file as a root-only placeholder
+with mode 0600):
 
 ```sh
-cd /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config
-
-read -r -s -p 'RESTIC_PASSWORD: ' RESTIC_PASSWORD; echo
-export RESTIC_PASSWORD
-export RESTIC_CACHE_DIR="${RESTIC_CACHE_DIR:-/opt/docker/restic/cache}"
-export RESTIC_RESTORE_DIR="${RESTIC_RESTORE_DIR:-/opt/docker/restic/restore}"
+sudoedit /etc/docker-restic-config/secrets.env   # line: RESTIC_PASSWORD=...
 ```
 
-Copy the password from the stack environment in Portainer. Adjust the two
-directories if the stack environment sets other values; they are the defaults
-from `.env.example`. The remaining variables have defaults in
-`docker-compose.yml`. The variables exist only in this shell session.
+Prepare a root shell that loads the host configuration (bash). The file is
+readable by root only, so a normal shell cannot source it:
+
+```sh
+sudo -s
+cd /opt/docker/portainer-compose-unpacker/stacks/restic/docker-restic-config
+
+set -a
+. /etc/docker-restic-config/systemd.env
+. /etc/docker-restic-config/secrets.env
+: "${RESTIC_CACHE_DIR:=/opt/docker/restic/cache}"
+: "${RESTIC_RESTORE_DIR:=/opt/docker/restic/restore}"
+set +a
+```
+
+`systemd.env` sets `COMPOSE_FILE`, `COMPOSE_PROJECT_NAME` and the output
+directory as for the timers. The two directories are not part of
+`systemd.env`; the defaults are those from `.env.example`, so adjust them if the
+stack environment sets other values. The remaining variables have defaults in
+`docker-compose.yml`. The variables, including the password, exist only in this
+shell; leave it with `exit` when you are done.
+
+If you do not want the password on disk, skip `secrets.env`: omit that line and
+type the password instead (copy it from the stack environment in Portainer).
+It is read without echo and stays out of the shell history:
+
+```sh
+read -r -s -p 'RESTIC_PASSWORD: ' RESTIC_PASSWORD; echo
+export RESTIC_PASSWORD
+```
+
+Note that the systemd timers still need the password in `secrets.env`.
 
 Run only the Restic part of one backup (retention and check included):
 
@@ -102,11 +130,9 @@ sudo systemctl start restic-backup@paperless.service
 journalctl -u restic-backup@paperless.service -f
 ```
 
-The service reads `RESTIC_PASSWORD` from `/etc/docker-restic-config/secrets.env`
-(see above), not from Portainer. If the password exists only in Portainer, the
-timers fail for the same reason as the manual command: add the same value to
-that file once (`sudoedit /etc/docker-restic-config/secrets.env`, line
-`RESTIC_PASSWORD=...`, file mode 0600).
+The service reads `RESTIC_PASSWORD` from `/etc/docker-restic-config/secrets.env`,
+not from Portainer. If that file does not contain the password, the timers fail
+for the same reason as a manual command without it.
 
 List snapshots for a specific repository (shell prepared as above):
 
