@@ -2,7 +2,7 @@ name: restic
 
 services:
   restic-job:
-    image: restic/restic:0.19.1
+    image: restic/restic:0.20.0
     hostname: zeus-restic
     environment:
       - TZ=Europe/Berlin
